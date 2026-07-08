@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-07-08
+
+### Added
+- **Line Angle Slider Control:** Implemented parallel line angle rotation (range $-90^\circ$ to $90^\circ$). Lines are drawn dynamically at any angle utilizing diagonal projection coordinates and canvas boundary intersections.
+- **SVG Angle Export Support:** Refactored the vector compilation logic to output matching angled line ribbons in download files.
+
+### Changed
+- **UI Label Simplifications:** Replaced the "Line Density (Count)" label with "Number of Lines" and simplified descriptive tips.
+
 ## [1.1.0] - 2026-07-07
 
 ### Added

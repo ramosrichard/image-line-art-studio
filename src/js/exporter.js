@@ -1,21 +1,18 @@
 import { state } from './state.js';
 import { presets } from './presets.js';
 import { renderLineModulation } from './engine.js';
-
 export function generateSVGString(sourceCanvas, renderCanvas) {
   const W = 800;
   const H = 800;
   const preset = presets[state.colorPreset];
   
   const N = state.lineCount;
-  const spacing = W / N;
   const maxW = state.maxWidth;
   const minW = state.minWidth;
   const smoothing = state.smoothing;
   
   // Step sample resolution for vector coordinates
   const dy = 2;
-  const numSamples = Math.ceil(H / dy);
   
   // Read data from active source offscreen canvas
   const srcCtx = sourceCanvas.getContext('2d');
@@ -23,30 +20,89 @@ export function generateSVGString(sourceCanvas, renderCanvas) {
   const srcH = sourceCanvas.height;
   const srcData = srcCtx.getImageData(0, 0, srcW, srcH).data;
   
+  // Line angle math
+  const alpha = (state.lineAngle * Math.PI) / 180;
+  const cosA = Math.cos(alpha);
+  const sinA = Math.sin(alpha);
+  
+  // Calculate bounding u coordinates perpendicular to the lines
+  const u0 = 0;
+  const u1 = W * cosA;
+  const u2 = -H * sinA;
+  const u3 = W * cosA - H * sinA;
+  const uMin = Math.min(u0, u1, u2, u3);
+  const uMax = Math.max(u0, u1, u2, u3);
+  
+  const uRange = uMax - uMin;
+  const spacing = uRange / N;
+  
+  // Helper to get exact intersection of a line with the canvas bounds
+  function getLineIntersection(U_c) {
+    let vMin = -Infinity;
+    let vMax = Infinity;
+    
+    if (Math.abs(sinA) > 1e-6) {
+      const v1 = (-U_c * cosA) / sinA;
+      const v2 = (W - U_c * cosA) / sinA;
+      vMin = Math.max(vMin, Math.min(v1, v2));
+      vMax = Math.min(vMax, Math.max(v1, v2));
+    } else {
+      const x = U_c * cosA;
+      if (x < 0 || x > W) return null;
+    }
+    
+    if (Math.abs(cosA) > 1e-6) {
+      const v1 = (U_c * sinA) / cosA;
+      const v2 = (H + U_c * sinA) / cosA;
+      vMin = Math.max(vMin, Math.min(v1, v2));
+      vMax = Math.min(vMax, Math.max(v1, v2));
+    } else {
+      const y = -U_c * sinA;
+      if (y < 0 || y > H) return null;
+    }
+    
+    if (vMin > vMax) return null;
+    return { vStart: vMin, vEnd: vMax };
+  }
+  
   let svgPaths = '';
   
   for (let i = 0; i < N; i++) {
-    const X_c = (i + 0.5) * spacing;
+    const U_c = uMin + (i + 0.5) * spacing;
+    
+    const intersect = getLineIntersection(U_c);
+    if (!intersect) continue;
+    
+    const { vStart, vEnd } = intersect;
+    const L = vEnd - vStart;
+    if (L <= 0) continue;
+    
+    const numSamples = Math.ceil(L / dy);
+    if (numSamples < 2) continue;
+    
     const rawWidths = new Float32Array(numSamples);
     const smoothWidths = new Float32Array(numSamples);
     
     // Sample
     for (let s = 0; s < numSamples; s++) {
-      const y = s * dy;
-      const srcX = Math.min(srcW - 1, Math.max(0, Math.floor(X_c * (srcW / W))));
-      const srcY = Math.min(srcH - 1, Math.max(0, Math.floor(y * (srcH / H))));
+      const v = vStart + s * dy;
+      const canvasX = U_c * cosA + v * sinA;
+      const canvasY = -U_c * sinA + v * cosA;
+      
+      const srcX = Math.min(srcW - 1, Math.max(0, Math.floor(canvasX * (srcW / W))));
+      const srcY = Math.min(srcH - 1, Math.max(0, Math.floor(canvasY * (srcH / H))));
       
       const idx = (srcY * srcW + srcX) * 4;
       const r = srcData[idx];
       const g = srcData[idx+1];
       const b = srcData[idx+2];
       
-      let L = 0.299 * r + 0.587 * g + 0.114 * b;
-      L += state.brightness;
-      L = 128 + (L - 128) * state.contrast;
-      L = Math.max(0, Math.min(255, L));
+      let luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+      luminance += state.brightness;
+      luminance = 128 + (luminance - 128) * state.contrast;
+      luminance = Math.max(0, Math.min(255, luminance));
       
-      const darkness = 1.0 - (L / 255.0);
+      const darkness = 1.0 - (luminance / 255.0);
       rawWidths[s] = minW + darkness * (maxW - minW);
     }
     
@@ -68,17 +124,40 @@ export function generateSVGString(sourceCanvas, renderCanvas) {
     }
     
     // Construct SVG path string
-    let pathD = `M ${(X_c + smoothWidths[0]/2).toFixed(2)} 0`;
+    let rightPoints = [];
+    let leftPoints = [];
     
-    // Right side
-    for (let s = 1; s < numSamples; s++) {
-      pathD += ` L ${(X_c + smoothWidths[s]/2).toFixed(2)} ${(s * dy).toFixed(1)}`;
+    for (let s = 0; s < numSamples; s++) {
+      const v = vStart + s * dy;
+      const cX = U_c * cosA + v * sinA;
+      const cY = -U_c * sinA + v * cosA;
+      const halfW = smoothWidths[s] / 2;
+      
+      const xR = cX + halfW * cosA;
+      const yR = cY - halfW * sinA;
+      rightPoints.push(`${xR.toFixed(2)},${yR.toFixed(2)}`);
     }
     
-    // Bottom overlap & Left side going back up
-    pathD += ` L ${(X_c - smoothWidths[numSamples - 1]/2).toFixed(2)} ${((numSamples - 1) * dy).toFixed(1)}`;
-    for (let s = numSamples - 2; s >= 0; s--) {
-      pathD += ` L ${(X_c - smoothWidths[s]/2).toFixed(2)} ${(s * dy).toFixed(1)}`;
+    for (let s = numSamples - 1; s >= 0; s--) {
+      const v = vStart + s * dy;
+      const cX = U_c * cosA + v * sinA;
+      const cY = -U_c * sinA + v * cosA;
+      const halfW = smoothWidths[s] / 2;
+      
+      const xL = cX - halfW * cosA;
+      const yL = cY + halfW * sinA;
+      leftPoints.push(`${xL.toFixed(2)},${yL.toFixed(2)}`);
+    }
+    
+    const firstPt = rightPoints[0].split(',');
+    let pathD = `M ${firstPt[0]} ${firstPt[1]}`;
+    for (let s = 1; s < rightPoints.length; s++) {
+      const pt = rightPoints[s].split(',');
+      pathD += ` L ${pt[0]} ${pt[1]}`;
+    }
+    for (let s = 0; s < leftPoints.length; s++) {
+      const pt = leftPoints[s].split(',');
+      pathD += ` L ${pt[0]} ${pt[1]}`;
     }
     pathD += ' Z';
     

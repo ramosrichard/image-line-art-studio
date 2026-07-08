@@ -172,11 +172,21 @@
         <!-- Line Count -->
         <div class="space-y-1.5">
           <div class="flex justify-between text-xs font-medium">
-            <span class="text-slate-400">Line Density (Count)</span>
+            <span class="text-slate-400">Number of Lines</span>
             <span id="lineCountVal" class="text-cyan-400 font-mono">60</span>
           </div>
           <input type="range" id="lineCountSlider" min="20" max="200" step="1" value="60" class="w-full">
-          <p class="text-[10px] text-slate-500">Controls total vertical rows spanning the grid width.</p>
+          <p class="text-[10px] text-slate-500">Controls the total number of lines spanning the art.</p>
+        </div>
+
+        <!-- Line Angle -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs font-medium">
+            <span class="text-slate-400">Line Angle</span>
+            <span id="lineAngleVal" class="text-cyan-400 font-mono">0°</span>
+          </div>
+          <input type="range" id="lineAngleSlider" min="-90" max="90" step="5" value="0" class="w-full">
+          <p class="text-[10px] text-slate-500">Rotates the drawing axis of the lines dynamically.</p>
         </div>
 
         <!-- Max Line Width -->

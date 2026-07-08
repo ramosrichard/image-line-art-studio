@@ -8,6 +8,8 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
   const zoomVal = document.getElementById('zoomVal');
   const lineCountSlider = document.getElementById('lineCountSlider');
   const lineCountVal = document.getElementById('lineCountVal');
+  const lineAngleSlider = document.getElementById('lineAngleSlider');
+  const lineAngleVal = document.getElementById('lineAngleVal');
   const maxWidthSlider = document.getElementById('maxWidthSlider');
   const maxWidthVal = document.getElementById('maxWidthVal');
   const minWidthSlider = document.getElementById('minWidthSlider');
@@ -61,6 +63,7 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
   const sliders = [
     { el: zoomSlider, valEl: zoomVal, key: 'zoom', suffix: 'x', decimals: 2 },
     { el: lineCountSlider, valEl: lineCountVal, key: 'lineCount', suffix: '', decimals: 0 },
+    { el: lineAngleSlider, valEl: lineAngleVal, key: 'lineAngle', suffix: '°', decimals: 0 },
     { el: maxWidthSlider, valEl: maxWidthVal, key: 'maxWidth', suffix: 'px', decimals: 1 },
     { el: minWidthSlider, valEl: minWidthVal, key: 'minWidth', suffix: 'px', decimals: 1 },
     { el: smoothingSlider, valEl: smoothingVal, key: 'smoothing', suffix: 'px', decimals: 0 },

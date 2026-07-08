@@ -72,7 +72,6 @@ export function renderLineModulation(srcCanvas, dstCanvas, isExport = false, upd
   
   // Config Parameters
   const N = state.lineCount;
-  const spacing = w / N;
   
   // Scale lines and smoothing factors dynamically if rendering high-resolution downloads
   const scaleFactor = w / 800; 
@@ -80,51 +79,100 @@ export function renderLineModulation(srcCanvas, dstCanvas, isExport = false, upd
   const minW = state.minWidth * scaleFactor;
   const smoothing = Math.max(0, Math.floor(state.smoothing * (h / 800)));
   
-  // Sampling steps down the Y axis
-  const dy = isExport ? 1 : 2;
-  const numSamples = Math.ceil(h / dy);
+  // Sampling step along the lines
+  const dv = isExport ? 1 : 2;
   
-  // Preallocate width buffer
-  const rawWidths = new Float32Array(numSamples);
-  const smoothWidths = new Float32Array(numSamples);
+  // Line angle math
+  const alpha = (state.lineAngle * Math.PI) / 180;
+  const cosA = Math.cos(alpha);
+  const sinA = Math.sin(alpha);
   
-  // Process vertical columns
-  for (let i = 0; i < N; i++) {
-    const X_c = (i + 0.5) * spacing;
+  // Calculate bounding u coordinates perpendicular to the lines
+  // u = x * cosA - y * sinA
+  const u0 = 0;
+  const u1 = w * cosA;
+  const u2 = -h * sinA;
+  const u3 = w * cosA - h * sinA;
+  const uMin = Math.min(u0, u1, u2, u3);
+  const uMax = Math.max(u0, u1, u2, u3);
+  
+  const uRange = uMax - uMin;
+  const spacing = uRange / N;
+  
+  // Helper to get exact intersection of a line with the canvas bounds
+  function getLineIntersection(U_c) {
+    let vMin = -Infinity;
+    let vMax = Infinity;
     
-    // Loop down the column path
+    // Bounds from X: 0 <= U_c * cosA + v * sinA <= w
+    if (Math.abs(sinA) > 1e-6) {
+      const v1 = (-U_c * cosA) / sinA;
+      const v2 = (w - U_c * cosA) / sinA;
+      vMin = Math.max(vMin, Math.min(v1, v2));
+      vMax = Math.min(vMax, Math.max(v1, v2));
+    } else {
+      const x = U_c * cosA;
+      if (x < 0 || x > w) return null;
+    }
+    
+    // Bounds from Y: 0 <= -U_c * sinA + v * cosA <= h
+    if (Math.abs(cosA) > 1e-6) {
+      const v1 = (U_c * sinA) / cosA;
+      const v2 = (h + U_c * sinA) / cosA;
+      vMin = Math.max(vMin, Math.min(v1, v2));
+      vMax = Math.min(vMax, Math.max(v1, v2));
+    } else {
+      const y = -U_c * sinA;
+      if (y < 0 || y > h) return null;
+    }
+    
+    if (vMin > vMax) return null;
+    return { vStart: vMin, vEnd: vMax };
+  }
+  
+  // Draw each line
+  for (let i = 0; i < N; i++) {
+    const U_c = uMin + (i + 0.5) * spacing;
+    
+    // Get intersection segment inside canvas bounds
+    const intersect = getLineIntersection(U_c);
+    if (!intersect) continue;
+    
+    const { vStart, vEnd } = intersect;
+    const L = vEnd - vStart;
+    if (L <= 0) continue;
+    
+    const numSamples = Math.ceil(L / dv);
+    if (numSamples < 2) continue;
+    
+    const rawWidths = new Float32Array(numSamples);
+    const smoothWidths = new Float32Array(numSamples);
+    
+    // Step 1: Sample
     for (let s = 0; s < numSamples; s++) {
-      const y = s * dy;
+      const v = vStart + s * dv;
+      const canvasX = U_c * cosA + v * sinA;
+      const canvasY = -U_c * sinA + v * cosA;
       
-      // Map to pixel array index
-      const srcX = Math.min(srcW - 1, Math.max(0, Math.floor(X_c * (srcW / w))));
-      const srcY = Math.min(srcH - 1, Math.max(0, Math.floor(y * (srcH / h))));
+      // Map to source image coordinates
+      const srcX = Math.min(srcW - 1, Math.max(0, Math.floor(canvasX * (srcW / w))));
+      const srcY = Math.min(srcH - 1, Math.max(0, Math.floor(canvasY * (srcH / h))));
       
       const idx = (srcY * srcW + srcX) * 4;
       const r = srcData[idx];
       const g = srcData[idx+1];
       const b = srcData[idx+2];
       
-      // Grayscale Conversion
-      let L = 0.299 * r + 0.587 * g + 0.114 * b;
+      let luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+      luminance += state.brightness;
+      luminance = 128 + (luminance - 128) * state.contrast;
+      luminance = Math.max(0, Math.min(255, luminance));
       
-      // Apply controls: Brightness
-      L += state.brightness;
-      
-      // Apply controls: Contrast
-      L = 128 + (L - 128) * state.contrast;
-      
-      // Clamp value
-      L = Math.max(0, Math.min(255, L));
-      
-      // Darkness inversion
-      const darkness = 1.0 - (L / 255.0);
-      
-      // Compute raw modulated width
+      const darkness = 1.0 - (luminance / 255.0);
       rawWidths[s] = minW + darkness * (maxW - minW);
     }
     
-    // Apply Box Blur Moving Average Filter along Y
+    // Step 2: Smooth along the line path
     for (let s = 0; s < numSamples; s++) {
       if (smoothing === 0) {
         smoothWidths[s] = rawWidths[s];
@@ -141,19 +189,37 @@ export function renderLineModulation(srcCanvas, dstCanvas, isExport = false, upd
       smoothWidths[s] = sum / count;
     }
     
-    // Build variable-width ribbon outline
+    // Step 3: Draw ribbon
     dstCtx.beginPath();
-    dstCtx.moveTo(X_c + smoothWidths[0] / 2, 0);
     
-    // Right side boundary going down
-    for (let s = 1; s < numSamples; s++) {
-      dstCtx.lineTo(X_c + smoothWidths[s] / 2, s * dy);
+    // Right side going down
+    for (let s = 0; s < numSamples; s++) {
+      const v = vStart + s * dv;
+      const cX = U_c * cosA + v * sinA;
+      const cY = -U_c * sinA + v * cosA;
+      const halfW = smoothWidths[s] / 2;
+      
+      const xR = cX + halfW * cosA;
+      const yR = cY - halfW * sinA;
+      
+      if (s === 0) {
+        dstCtx.moveTo(xR, yR);
+      } else {
+        dstCtx.lineTo(xR, yR);
+      }
     }
     
-    // Left side boundary going up
-    dstCtx.lineTo(X_c - smoothWidths[numSamples - 1] / 2, (numSamples - 1) * dy);
-    for (let s = numSamples - 2; s >= 0; s--) {
-      dstCtx.lineTo(X_c - smoothWidths[s] / 2, s * dy);
+    // Left side going back up
+    for (let s = numSamples - 1; s >= 0; s--) {
+      const v = vStart + s * dv;
+      const cX = U_c * cosA + v * sinA;
+      const cY = -U_c * sinA + v * cosA;
+      const halfW = smoothWidths[s] / 2;
+      
+      const xL = cX - halfW * cosA;
+      const yL = cY + halfW * sinA;
+      
+      dstCtx.lineTo(xL, yL);
     }
     
     dstCtx.closePath();

@@ -11,6 +11,7 @@ export const state = {
 
   // Modulation Algorithm parameters
   lineCount: 60,
+  lineAngle: 0,           // Angle of lines in degrees (-90 to 90)
   maxWidth: 8.0,
   minWidth: 0.5,
   smoothing: 5,

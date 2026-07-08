@@ -34,13 +34,21 @@ The studio is built entirely on client-side web technologies and requires no com
 
 ## 🧮 How It Works (The Algorithm)
 
-For a canvas of width $W_{canvas}$ and density $N$ columns, the horizontal step size is:
-$$S = \frac{W_{canvas}}{N}$$
+For a canvas of dimensions $W \times H$ and a line angle $\alpha$ (in radians), the coordinate axis perpendicular to the parallel lines is defined by:
+$$u = x \cos\alpha - y \sin\alpha$$
 
-For each vertical line (column $i \in [0, N-1]$), we locate the center coordinate $X_c = (i + 0.5) \times S$. We then step down the vertical $Y$ axis in increments of $dy$:
+We map the canvas corner coordinates $(0,0), (W,0), (0,H),$ and $(W,H)$ to determine the minimum and maximum boundaries along the perpendicular axis, $u_{min}$ and $u_{max}$.
+
+For $N$ parallel lines, the line spacing distance is:
+$$S = \frac{u_{max} - u_{min}}{N}$$
+
+For each line $i \in [0, N-1]$, let its perpendicular offset coordinate be $U_c = u_{min} + (i + 0.5) \times S$. We determine the exact segment where this line intersects the canvas boundaries by solving:
+$$0 \le U_c \cos\alpha + v \sin\alpha \le W$$
+$$0 \le -U_c \sin\alpha + v \cos\alpha \le H$$
+This yields an active interval $[v_{start}, v_{end}]$ representing the line path inside the viewport. We step along $v$ in increments of $dv$:
 
 1. **Luminance Calculation:**
-   At coordinate $(X_c, y)$, we retrieve the underlying image pixel $(R, G, B)$ and calculate grayscale luminance:
+   At step coordinate $(x, y) = (U_c \cos\alpha + v \sin\alpha, -U_c \sin\alpha + v \cos\alpha)$, we retrieve the underlying image pixel $(R, G, B)$ and calculate grayscale luminance:
    $$L = 0.299R + 0.587G + 0.114B$$
 
 2. **Contrast & Brightness Adjustment:**
@@ -52,12 +60,12 @@ For each vertical line (column $i \in [0, N-1]$), we locate the center coordinat
    The darkness value is calculated as $d = 1.0 - (L_{adj} / 255.0)$. The raw stroke width is then mapped:
    $$W_{raw} = MinWidth + d \times (MaxWidth - MinWidth)$$
 
-4. **Y-Axis Smoothing:**
+4. **Smoothing along Line Path:**
    To prevent jagged noise artifacts, we run a moving-average window blur with radius $k$:
    $$W_{smooth}[j] = \frac{1}{2k+1} \sum_{m=-k}^{k} W_{raw}[j+m]$$
 
 5. **Path Construction:**
-   The ribbon is closed by tracing down the right boundary $(X_c + \frac{W_{smooth}}{2}, y)$ and back up the left boundary $(X_c - \frac{W_{smooth}}{2}, y)$, forming a single polygon fill operation.
+   The ribbon is closed by tracing down the right boundary $(x + \frac{W_{smooth}}{2} \cos\alpha, y - \frac{W_{smooth}}{2} \sin\alpha)$ and returning up the left boundary $(x - \frac{W_{smooth}}{2} \cos\alpha, y + \frac{W_{smooth}}{2} \sin\alpha)$, forming a single polygon fill operation.
 
 ---
 
