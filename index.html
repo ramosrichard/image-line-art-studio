@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Optical Line Art Studio - Line Modulation Generator</title>
+  
+  <!-- SEO Tags -->
+  <meta name="description" content="Generate stunning optical line art from your images. Client-side vertical line modulation with real-time editing, vector SVG exports, and premium color palettes.">
+  <meta name="keywords" content="optical art, line art, halftone generator, vector line art, image to vector, line modulation, canvas processing">
+  <meta name="author" content="Antigravity Coding Assistant">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Custom Tailwind Config for Themes and Fonts -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            slate: {
+              950: '#060b13',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Google Fonts: Outfit and Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #06b6d4;
+    }
+
+    /* Range Slider Styling */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #1e293b;
+      height: 6px;
+      border-radius: 9999px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #06b6d4;
+      cursor: pointer;
+      border: 2px solid #0f172a;
+      transition: transform 0.1s ease, background-color 0.1s ease;
+      box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+      background: #22d3ee;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border: 2px solid #0f172a;
+      border-radius: 50%;
+      background: #06b6d4;
+      cursor: pointer;
+      transition: transform 0.1s ease, background-color 0.1s ease;
+      box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+    }
+    input[type="range"]::-moz-range-thumb:hover {
+      transform: scale(1.25);
+      background: #22d3ee;
+    }
+
+    /* Photoshop Checkerboard Background */
+    .checkerboard-bg {
+      background-color: #0d121f;
+      background-image: 
+        linear-gradient(45deg, #182030 25%, transparent 25%),
+        linear-gradient(-45deg, #182030 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #182030 75%),
+        linear-gradient(-45deg, transparent 75%, #182030 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden select-none">
+
+  <!-- Header -->
+  <header class="flex-shrink-0 bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between z-30">
+    <div class="flex items-center gap-3">
+      <!-- Icon Logo -->
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M4 18V6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2z" />
+          <path d="M9 6v12M15 6v12M12 6v12" stroke-dasharray="1 3" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="font-heading text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          OPTICAL LINE ART STUDIO
+          <span class="text-[10px] tracking-widest bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full border border-cyan-500/20 font-sans font-medium uppercase">Engine v1.0</span>
+        </h1>
+        <p class="text-xs text-slate-400 font-medium">Halftone Line Modulation & Scale-Vector Synthesis</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-3">
+      <a href="https://github.com" target="_blank" class="text-slate-400 hover:text-slate-200 transition text-sm flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2A10 10 0 002 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/></svg>
+        Documentation
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+    
+    <!-- Left Sidebar: Controls -->
+    <section class="w-full md:w-96 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto z-20 flex-shrink-0">
+      
+      <!-- Upload & Preload Templates Section -->
+      <div class="p-5 border-b border-slate-800 space-y-4">
+        <h2 class="text-xs font-bold tracking-wider text-slate-400 uppercase">1. Image & Input Source</h2>
+        
+        <!-- Drag-and-Drop Dropzone -->
+        <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-cyan-500/80 bg-slate-950/40 hover:bg-slate-950/80 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer transition duration-250 group relative">
+          <input type="file" id="fileInput" accept="image/png, image/jpeg" class="hidden">
+          <svg class="w-8 h-8 text-slate-500 group-hover:text-cyan-400 mb-2 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          <p class="text-xs font-semibold text-slate-300 group-hover:text-slate-200">Drag image here or click</p>
+          <p class="text-[10px] text-slate-500 mt-1">Supports PNG, JPEG up to 10MB</p>
+        </div>
+
+        <!-- Preloaded Generators (Chips) -->
+        <div class="space-y-2">
+          <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Or Use Preset Vectors</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="loadSamplePattern('portrait')" class="px-2 py-1.5 bg-slate-800 hover:bg-slate-750 active:bg-slate-700 text-[11px] font-medium text-slate-300 rounded-lg transition border border-slate-700 flex items-center justify-center gap-1">
+              <span>👤</span> Portrait
+            </button>
+            <button onclick="loadSamplePattern('sphere')" class="px-2 py-1.5 bg-slate-800 hover:bg-slate-750 active:bg-slate-700 text-[11px] font-medium text-slate-300 rounded-lg transition border border-slate-700 flex items-center justify-center gap-1">
+              <span>🔮</span> Sphere
+            </button>
+            <button onclick="loadSamplePattern('waves')" class="px-2 py-1.5 bg-slate-800 hover:bg-slate-750 active:bg-slate-700 text-[11px] font-medium text-slate-300 rounded-lg transition border border-slate-700 flex items-center justify-center gap-1">
+              <span>🌊</span> Ripples
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Source Thumbnail -->
+        <div id="sourceThumbnailContainer" class="hidden flex items-center gap-3 p-2 bg-slate-950/60 border border-slate-800 rounded-lg transition">
+          <img id="sourceThumbnailImg" class="w-12 h-12 rounded object-cover border border-slate-700 bg-slate-900" />
+          <div class="flex-1 min-w-0">
+            <div class="text-[11px] font-semibold text-slate-300 truncate" id="sourceImgName">image.png</div>
+            <div class="text-[10px] text-slate-500 font-mono mt-0.5" id="sourceImgResolution">0 x 0 px</div>
+          </div>
+          <button id="clearSourceImgBtn" class="text-slate-500 hover:text-red-400 p-1 transition" title="Clear image">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Image Placement / Crop Adjustments -->
+      <div class="p-5 border-b border-slate-800 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold tracking-wider text-slate-400 uppercase">2. Position & Crop</h2>
+          <button onclick="resetPlacement()" class="text-[10px] font-semibold text-cyan-400 hover:text-cyan-300 transition uppercase tracking-wider flex items-center gap-1">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18" /></svg>
+            Reset
+          </button>
+        </div>
+
+        <!-- Zoom Slider -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs font-medium">
+            <span class="text-slate-400">Image Scale (Zoom)</span>
+            <span id="zoomVal" class="text-cyan-400 font-mono">1.00x</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="adjustZoom(-0.1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg flex items-center justify-center font-bold text-xs transition border border-slate-700">-</button>
+            <input type="range" id="zoomSlider" min="0.1" max="5.0" step="0.05" value="1.0" class="flex-1">
+            <button onclick="adjustZoom(0.1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg flex items-center justify-center font-bold text-xs transition border border-slate-700">+</button>
+          </div>
+        </div>
+
+        <!-- Rotation & Aspect Ratio -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Rotate</label>
+            <button onclick="rotateImage()" class="w-full py-1.5 bg-slate-800 hover:bg-slate-750 text-xs font-medium text-slate-300 rounded-lg border border-slate-700 transition flex items-center justify-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18" /></svg>
+              Rotate 90°
+            </button>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Aspect Ratio</label>
+            <select id="aspectRatioSelect" onchange="changeAspectRatio()" class="w-full py-1.5 px-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-cyan-500">
+              <option value="1:1">Square 1:1</option>
+              <option value="4:3">Landscape 4:3</option>
+              <option value="16:9">Widescreen 16:9</option>
+              <option value="3:4">Portrait 3:4</option>
+              <option value="original">Original Aspect</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modulation Algorithm Settings -->
+      <div class="p-5 border-b border-slate-800 space-y-5 flex-1">
+        <h2 class="text-xs font-bold tracking-wider text-slate-400 uppercase">3. Modulation Controls</h2>
+
+        <!-- Line Count -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs font-medium">
+            <span class="text-slate-400">Line Density (Count)</span>
+            <span id="lineCountVal" class="text-cyan-400 font-mono">60</span>
+          </div>
+          <input type="range" id="lineCountSlider" min="20" max="200" step="1" value="60" class="w-full">
+          <p class="text-[10px] text-slate-500">Controls total vertical rows spanning the grid width.</p>
+        </div>
+
+        <!-- Max Line Width -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs font-medium">
+            <span class="text-slate-400">Max Line Width</span>
+            <span id="maxWidthVal" class="text-cyan-400 font-mono">8.0px</span>
+          </div>
+          <input type="range" id="maxWidthSlider" min="2.0" max="25.0" step="0.5" value="8.0" class="w-full">
+          <p class="text-[10px] text-slate-500">Maximum ribbon thickness mapping to absolute darks.</p>
+        </div>
+
+        <!-- Min Line Width -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs font-medium">
+            <span class="text-slate-400">Min Line Width</span>
+            <span id="minWidthVal" class="text-cyan-400 font-mono">0.5px</span>
+          </div>
+          <input type="range" id="minWidthSlider" min="0.0" max="5.0" step="0.1" value="0.5" class="w-full">
+          <p class="text-[10px] text-slate-500">Minimum line width mapping to absolute lights.</p>
+        </div>
+
+        <!-- Y-Axis Smoothing -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs font-medium">
+            <span class="text-slate-400">Y-Axis Smoothing</span>
+            <span id="smoothingVal" class="text-cyan-400 font-mono">5px</span>
+          </div>
+          <input type="range" id="smoothingSlider" min="0" max="30" step="1" value="5" class="w-full">
+          <p class="text-[10px] text-slate-500">Reduces vertical noise. High values yield smooth flowing ribbons.</p>
+        </div>
+
+        <!-- Contrast Boost -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs font-medium">
+            <span class="text-slate-400">Contrast Boost</span>
+            <span id="contrastVal" class="text-cyan-400 font-mono">1.00x</span>
+          </div>
+          <input type="range" id="contrastSlider" min="0.5" max="3.0" step="0.1" value="1.0" class="w-full">
+          <p class="text-[10px] text-slate-500">Amplifies the difference between highlights and shadows.</p>
+        </div>
+
+        <!-- Brightness -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs font-medium">
+            <span class="text-slate-400">Brightness Shift</span>
+            <span id="brightnessVal" class="text-cyan-400 font-mono">0</span>
+          </div>
+          <input type="range" id="brightnessSlider" min="-100" max="100" step="5" value="0" class="w-full">
+          <p class="text-[10px] text-slate-500">Modulates the global light levels before thickness mapping.</p>
+        </div>
+      </div>
+
+      <!-- Aesthetics & Palette Panel -->
+      <div class="p-5 border-b border-slate-800 space-y-4">
+        <h2 class="text-xs font-bold tracking-wider text-slate-400 uppercase">4. Color & Preset Palette</h2>
+        
+        <!-- Palette Presets Grid -->
+        <div class="grid grid-cols-4 gap-2" id="paletteGrid">
+          <!-- Populated programmatically -->
+        </div>
+
+        <!-- Transparency Option -->
+        <div class="flex items-center justify-between p-2 bg-slate-950/40 border border-slate-800 rounded-lg">
+          <div class="flex flex-col">
+            <span class="text-xs font-semibold text-slate-300">Transparent Background</span>
+            <span class="text-[9px] text-slate-500">Renders lines directly on transparency</span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="transparencyToggle" class="sr-only peer" onchange="toggleTransparency()">
+            <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:height-4 after:w-4 after:transition-all peer-checked:bg-cyan-500 peer-checked:after:bg-white"></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Export Panel -->
+      <div class="p-5 bg-slate-950/80 space-y-4">
+        <h2 class="text-xs font-bold tracking-wider text-slate-400 uppercase">5. Output & Export</h2>
+        
+        <div class="space-y-3">
+          <!-- High-Res PNG Checkbox Toggle -->
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">Match Original Image Resolution</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="highResExportToggle" class="sr-only peer" checked onchange="toggleHighResExport()">
+              <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-cyan-500 peer-checked:after:bg-white"></div>
+            </label>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <button onclick="downloadPNG()" class="py-2.5 bg-gradient-to-tr from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-xs font-bold text-white rounded-lg shadow-md hover:shadow-cyan-500/10 active:scale-[0.98] transition flex items-center justify-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              PNG Image
+            </button>
+            <button onclick="downloadSVG()" class="py-2.5 bg-slate-800 hover:bg-slate-750 text-xs font-bold text-slate-200 rounded-lg shadow-sm border border-slate-700 active:scale-[0.98] transition flex items-center justify-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+              SVG Vector
+            </button>
+          </div>
+        </div>
+      </div>
+      
+    </section>
+
+    <!-- Right Side: Preview Area -->
+    <section class="flex-1 bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      
+      <!-- Canvas Wrapper (with Shadow & Framer UI) -->
+      <div class="relative w-full max-w-2xl aspect-square bg-slate-900 rounded-2xl border border-slate-800/80 shadow-2xl flex items-center justify-center overflow-hidden group" id="canvasFrame">
+        
+        <!-- Checkerboard Behind Canvas for transparency checks -->
+        <div id="checkerboard" class="absolute inset-0 hidden checkerboard-bg"></div>
+        
+        <!-- Canvas Element -->
+        <canvas id="previewCanvas" class="relative z-10 w-full h-full object-contain cursor-move touch-none"></canvas>
+        
+        <!-- Comparison Overlay (original source image) -->
+        <canvas id="sourceOverlayCanvas" class="absolute inset-0 z-20 w-full h-full object-contain pointer-events-none opacity-0 transition-opacity duration-200"></canvas>
+        
+        <!-- Corner Borders for Premium Focus Look -->
+        <div class="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-slate-700 pointer-events-none group-hover:border-cyan-500 transition duration-300"></div>
+        <div class="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-slate-700 pointer-events-none group-hover:border-cyan-500 transition duration-300"></div>
+        <div class="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-slate-700 pointer-events-none group-hover:border-cyan-500 transition duration-300"></div>
+        <div class="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-slate-700 pointer-events-none group-hover:border-cyan-500 transition duration-300"></div>
+
+        <!-- Render Timing / Stats overlay -->
+        <div class="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 bg-slate-950/80 border border-slate-800 rounded-full flex items-center gap-2 text-[10px] text-slate-400 font-mono shadow-md select-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>GPU Render: <span id="renderTimeVal" class="text-emerald-400">0.0ms</span></span>
+        </div>
+      </div>
+
+      <!-- Live Canvas Helper Utilities -->
+      <div class="mt-6 flex flex-wrap items-center justify-center gap-4 z-10">
+        <!-- Hold to Compare -->
+        <button id="compareBtn" class="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-750 border border-slate-800 text-slate-300 text-xs font-semibold rounded-xl shadow-md transition duration-150 select-none cursor-pointer">
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          Hold to View Source
+        </button>
+
+        <!-- Position Controls Info tooltip -->
+        <div class="flex items-center gap-2 text-[11px] text-slate-500 bg-slate-900/40 px-3 py-1.5 rounded-lg border border-slate-900">
+          <span class="text-cyan-400">💡 Tip:</span>
+          <span>Drag canvas to Pan. Use Scale slider to Zoom image.</span>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Engine Script -->
+  <script>
+    // -------------------------------------------------------------
+    // Global Constants & State
+    // -------------------------------------------------------------
+    const state = {
+      image: null,            // Image element or generated mathematical Canvas
+      imageName: 'Sample Pattern',
+      
+      // Transform positioning mapping
+      zoom: 1.0,
+      panX: 0,
+      panY: 0,
+      rotation: 0,            // 0, 90, 180, 270 degrees
+      aspectRatio: '1:1',     // '1:1', '4:3', '16:9', '3:4', 'original'
+
+      // Modulation Parameters
+      lineCount: 60,
+      maxWidth: 8.0,
+      minWidth: 0.5,
+      smoothing: 5,
+      contrast: 1.0,
+      brightness: 0,
+
+      // Custom Aesthetics
+      transparentBg: false,
+      colorPreset: 'monochrome-dark',
+      highResExport: true
+    };
+
+    // Color Preset Repository
+    const presets = {
+      'monochrome-dark': {
+        name: 'Dark Slate',
+        bgColor: '#090d16',
+        lineColor: '#f1f5f9',
+        previewClass: 'bg-slate-900 border-slate-700'
+      },
+      'monochrome-light': {
+        name: 'Clean Light',
+        bgColor: '#ffffff',
+        lineColor: '#0f172a',
+        previewClass: 'bg-white border-slate-300'
+      },
+      'amber-terminal': {
+        name: 'Amber Glow',
+        bgColor: '#0a0703',
+        lineColor: '#f59e0b',
+        previewClass: 'bg-[#0a0703] border-amber-900/50'
+      },
+      'matrix-green': {
+        name: 'Neo Matrix',
+        bgColor: '#020603',
+        lineColor: '#22c55e',
+        previewClass: 'bg-[#020603] border-emerald-900/50'
+      },
+      'cyberpunk': {
+        name: 'Cyberpunk',
+        bgColor: '#090412',
+        lineGradient: ['#ff007f', '#00f0ff'],
+        previewClass: 'bg-gradient-to-r from-pink-500 to-cyan-500 border-purple-800'
+      },
+      'sunset': {
+        name: 'Sunset Glow',
+        bgColor: '#170617',
+        lineGradient: ['#ff3366', '#ffb333'],
+        previewClass: 'bg-gradient-to-r from-rose-500 to-orange-400 border-rose-900'
+      },
+      'ocean': {
+        name: 'Deep Blue',
+        bgColor: '#050f1a',
+        lineGradient: ['#0077ff', '#00ffd5'],
+        previewClass: 'bg-gradient-to-r from-blue-600 to-teal-400 border-blue-900'
+      },
+      'sepia': {
+        name: 'Warm Sepia',
+        bgColor: '#fcf8f2',
+        lineColor: '#5c4033',
+        previewClass: 'bg-[#fcf8f2] border-amber-200'
+      }
+    };
+
+    // Offscreen sampling and drawing canvases
+    let sourceCanvas = null;
+    let renderCanvas = null;
+
+    // Drag-and-drop & manipulation tracking
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let startPanX = 0;
+    let startPanY = 0;
+    let renderPending = false;
+
+    // -------------------------------------------------------------
+    // Abstract Pattern Generators
+    // -------------------------------------------------------------
+    function drawShadedSphere(ctx, w, h) {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, w, h);
+      
+      const cx = w * 0.4;
+      const cy = h * 0.4;
+      const r = Math.min(w, h) * 0.42;
+      
+      const grad = ctx.createRadialGradient(cx, cy, r * 0.05, w * 0.5, h * 0.5, r);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.3, '#dddddd');
+      grad.addColorStop(0.7, '#3a3a3a');
+      grad.addColorStop(1, '#000000');
+      
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(w * 0.5, h * 0.5, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawSilhouettePortrait(ctx, w, h) {
+      // Draw background gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+      bgGrad.addColorStop(0, '#1e293b');
+      bgGrad.addColorStop(1, '#0f172a');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, w, h);
+      
+      ctx.fillStyle = '#ffffff';
+      
+      // Neck
+      ctx.beginPath();
+      ctx.moveTo(w * 0.44, h * 0.65);
+      ctx.quadraticCurveTo(w * 0.44, h * 0.85, w * 0.40, h * 0.90);
+      ctx.lineTo(w * 0.60, h * 0.90);
+      ctx.quadraticCurveTo(w * 0.56, h * 0.85, w * 0.56, h * 0.65);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Face / Head
+      ctx.beginPath();
+      ctx.arc(w * 0.5, h * 0.48, w * 0.175, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Jaw shaping
+      ctx.beginPath();
+      ctx.moveTo(w * 0.325, h * 0.48);
+      ctx.quadraticCurveTo(w * 0.325, h * 0.65, w * 0.5, h * 0.68);
+      ctx.quadraticCurveTo(w * 0.675, h * 0.65, w * 0.675, h * 0.48);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Hair (dark contrast elements)
+      ctx.fillStyle = '#050b14';
+      ctx.beginPath();
+      ctx.arc(w * 0.5, h * 0.40, w * 0.19, Math.PI, 0); // top hair
+      ctx.arc(w * 0.40, h * 0.44, w * 0.08, 0, Math.PI * 2); // side volume
+      ctx.arc(w * 0.60, h * 0.44, w * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Glasses bridge & rims
+      ctx.lineWidth = w * 0.015;
+      ctx.strokeStyle = '#050b14';
+      ctx.fillStyle = '#050b14';
+      
+      // Left eye/glass
+      ctx.beginPath();
+      ctx.arc(w * 0.425, h * 0.50, w * 0.055, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Right eye/glass
+      ctx.beginPath();
+      ctx.arc(w * 0.575, h * 0.50, w * 0.055, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Nose shadow triangle
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.50);
+      ctx.lineTo(w * 0.48, h * 0.57);
+      ctx.lineTo(w * 0.52, h * 0.57);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Lips
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.ellipse(w * 0.5, h * 0.61, w * 0.035, h * 0.012, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Apply Composite shade overlay (delivers smooth dark/light gradient to vector structure)
+      ctx.globalCompositeOperation = 'source-atop';
+      const shade = ctx.createLinearGradient(0, h * 0.2, w, h * 0.8);
+      shade.addColorStop(0, '#ffffff');
+      shade.addColorStop(0.4, '#e2e8f0');
+      shade.addColorStop(0.75, '#475569');
+      shade.addColorStop(1, '#020617');
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, 0, w, h);
+      
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function drawRippleWaves(ctx, w, h) {
+      const imgData = ctx.createImageData(w, h);
+      const data = imgData.data;
+      
+      const cx1 = w * 0.35;
+      const cy1 = h * 0.35;
+      const cx2 = w * 0.70;
+      const cy2 = h * 0.70;
+      
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4;
+          
+          const d1 = Math.sqrt((x - cx1)**2 + (y - cy1)**2);
+          const d2 = Math.sqrt((x - cx2)**2 + (y - cy2)**2);
+          
+          const wave1 = Math.sin(d1 / (w * 0.02));
+          const wave2 = Math.sin(d2 / (w * 0.03));
+          
+          const combined = (wave1 + wave2) / 2;
+          const val = Math.floor((combined + 1) * 127.5);
+          
+          data[idx] = val;
+          data[idx+1] = val;
+          data[idx+2] = val;
+          data[idx+3] = 255;
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    function loadSamplePattern(type) {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 800;
+      tempCanvas.height = 800;
+      const ctx = tempCanvas.getContext('2d');
+      
+      if (type === 'sphere') {
+        drawShadedSphere(ctx, 800, 800);
+        state.imageName = '3D Sphere Preset';
+      } else if (type === 'waves') {
+        drawRippleWaves(ctx, 800, 800);
+        state.imageName = 'Optical Wave Preset';
+      } else if (type === 'portrait') {
+        drawSilhouettePortrait(ctx, 800, 800);
+        state.imageName = 'Art Portrait Preset';
+      }
+      
+      state.image = tempCanvas;
+      
+      // Auto-reset coordinates
+      state.zoom = 1.0;
+      state.panX = 0;
+      state.panY = 0;
+      state.rotation = 0;
+      
+      // Update UI input settings
+      document.getElementById('zoomSlider').value = 1.0;
+      document.getElementById('zoomVal').innerText = '1.00x';
+      
+      updateSourceThumbnail(true);
+      triggerRedraw();
+    }
+
+    // -------------------------------------------------------------
+    // Core Engine Logic: Draw & Line Modulation
+    // -------------------------------------------------------------
+    function drawSourceImage() {
+      if (!sourceCanvas) return;
+      const ctx = sourceCanvas.getContext('2d');
+      const w = sourceCanvas.width;
+      const h = sourceCanvas.height;
+      
+      ctx.clearRect(0, 0, w, h);
+      ctx.save();
+      
+      // Translate to center for rotation/zoom operations
+      ctx.translate(w / 2 + state.panX, h / 2 + state.panY);
+      ctx.rotate((state.rotation * Math.PI) / 180);
+      ctx.scale(state.zoom, state.zoom);
+      
+      if (state.image) {
+        const imgW = state.image.width;
+        const imgH = state.image.height;
+        
+        // Covering Scale Ratio (Aspect-Cover fit)
+        const scale = Math.max(w / imgW, h / imgH);
+        const drawW = imgW * scale;
+        const drawH = imgH * scale;
+        
+        ctx.drawImage(state.image, -drawW / 2, -drawH / 2, drawW, drawH);
+      }
+      ctx.restore();
+    }
+
+    function renderLineModulation(srcCanvas, dstCanvas, isExport = false) {
+      const startTime = performance.now();
+      
+      const srcCtx = srcCanvas.getContext('2d');
+      const dstCtx = dstCanvas.getContext('2d');
+      const w = dstCanvas.width;
+      const h = dstCanvas.height;
+      
+      // Clear
+      dstCtx.clearRect(0, 0, w, h);
+      
+      const preset = presets[state.colorPreset];
+      
+      // Render Background
+      if (!state.transparentBg) {
+        if (preset.bgGradient) {
+          const bgGrad = dstCtx.createLinearGradient(0, 0, 0, h);
+          bgGrad.addColorStop(0, preset.bgGradient[0]);
+          bgGrad.addColorStop(1, preset.bgGradient[1]);
+          dstCtx.fillStyle = bgGrad;
+        } else {
+          dstCtx.fillStyle = preset.bgColor;
+        }
+        dstCtx.fillRect(0, 0, w, h);
+      }
+      
+      // Setup Line Coloring
+      if (preset.lineGradient) {
+        const lineGrad = dstCtx.createLinearGradient(0, 0, w, 0);
+        lineGrad.addColorStop(0, preset.lineGradient[0]);
+        lineGrad.addColorStop(1, preset.lineGradient[1]);
+        dstCtx.fillStyle = lineGrad;
+      } else {
+        dstCtx.fillStyle = preset.lineColor;
+      }
+      
+      // Get image data
+      const srcData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height).data;
+      const srcW = srcCanvas.width;
+      const srcH = srcCanvas.height;
+      
+      // Config Parameters
+      const N = state.lineCount;
+      const spacing = w / N;
+      
+      // Scale lines and smoothing factors dynamically if rendering high-resolution downloads
+      const scaleFactor = w / 800; 
+      const maxW = state.maxWidth * scaleFactor;
+      const minW = state.minWidth * scaleFactor;
+      const smoothing = Math.max(0, Math.floor(state.smoothing * (h / 800)));
+      
+      // Sampling steps down the Y axis
+      const dy = isExport ? 1 : 2;
+      const numSamples = Math.ceil(h / dy);
+      
+      // Preallocate width buffer
+      const rawWidths = new Float32Array(numSamples);
+      const smoothWidths = new Float32Array(numSamples);
+      
+      // Process vertical columns
+      for (let i = 0; i < N; i++) {
+        const X_c = (i + 0.5) * spacing;
+        
+        // Loop down the column path
+        for (let s = 0; s < numSamples; s++) {
+          const y = s * dy;
+          
+          // Map to pixel array index
+          const srcX = Math.min(srcW - 1, Math.max(0, Math.floor(X_c * (srcW / w))));
+          const srcY = Math.min(srcH - 1, Math.max(0, Math.floor(y * (srcH / h))));
+          
+          const idx = (srcY * srcW + srcX) * 4;
+          const r = srcData[idx];
+          const g = srcData[idx+1];
+          const b = srcData[idx+2];
+          
+          // Grayscale Conversion
+          let L = 0.299 * r + 0.587 * g + 0.114 * b;
+          
+          // Apply controls: Brightness
+          L += state.brightness;
+          
+          // Apply controls: Contrast
+          L = 128 + (L - 128) * state.contrast;
+          
+          // Clamp value
+          L = Math.max(0, Math.min(255, L));
+          
+          // Darkness inversion
+          const darkness = 1.0 - (L / 255.0);
+          
+          // Compute raw modulated width
+          rawWidths[s] = minW + darkness * (maxW - minW);
+        }
+        
+        // Apply Box Blur Moving Average Filter along Y
+        for (let s = 0; s < numSamples; s++) {
+          if (smoothing === 0) {
+            smoothWidths[s] = rawWidths[s];
+            continue;
+          }
+          let sum = 0;
+          let count = 0;
+          for (let wIndex = s - smoothing; wIndex <= s + smoothing; wIndex++) {
+            if (wIndex >= 0 && wIndex < numSamples) {
+              sum += rawWidths[wIndex];
+              count++;
+            }
+          }
+          smoothWidths[s] = sum / count;
+        }
+        
+        // Build variable-width ribbon outline
+        dstCtx.beginPath();
+        dstCtx.moveTo(X_c + smoothWidths[0] / 2, 0);
+        
+        // Right side boundary going down
+        for (let s = 1; s < numSamples; s++) {
+          dstCtx.lineTo(X_c + smoothWidths[s] / 2, s * dy);
+        }
+        
+        // Left side boundary going up
+        dstCtx.lineTo(X_c - smoothWidths[numSamples - 1] / 2, (numSamples - 1) * dy);
+        for (let s = numSamples - 2; s >= 0; s--) {
+          dstCtx.lineTo(X_c - smoothWidths[s] / 2, s * dy);
+        }
+        
+        dstCtx.closePath();
+        dstCtx.fill();
+      }
+      
+      const duration = performance.now() - startTime;
+      if (!isExport) {
+        document.getElementById('renderTimeVal').innerText = duration.toFixed(1) + 'ms';
+      }
+    }
+
+    // Main Redraw loop trigger (throttled by RequestAnimationFrame)
+    function triggerRedraw() {
+      if (renderPending) return;
+      renderPending = true;
+      requestAnimationFrame(() => {
+        // Redraw steps
+        drawSourceImage();
+        renderLineModulation(sourceCanvas, renderCanvas);
+        
+        // Paint visual output canvas in UI
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewCtx = previewCanvas.getContext('2d');
+        previewCanvas.width = renderCanvas.width;
+        previewCanvas.height = renderCanvas.height;
+        previewCtx.drawImage(renderCanvas, 0, 0);
+        
+        renderPending = false;
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Vector SVG Synthesizer
+    // -------------------------------------------------------------
+    function generateSVGString() {
+      const W = 800;
+      const H = 800;
+      const preset = presets[state.colorPreset];
+      
+      const N = state.lineCount;
+      const spacing = W / N;
+      const maxW = state.maxWidth;
+      const minW = state.minWidth;
+      const smoothing = state.smoothing;
+      
+      // Step sample resolution for vector coordinates
+      const dy = 2;
+      const numSamples = Math.ceil(H / dy);
+      
+      // Read data from active source offscreen canvas
+      const srcCtx = sourceCanvas.getContext('2d');
+      const srcW = sourceCanvas.width;
+      const srcH = sourceCanvas.height;
+      const srcData = srcCtx.getImageData(0, 0, srcW, srcH).data;
+      
+      let svgPaths = '';
+      
+      for (let i = 0; i < N; i++) {
+        const X_c = (i + 0.5) * spacing;
+        const rawWidths = new Float32Array(numSamples);
+        const smoothWidths = new Float32Array(numSamples);
+        
+        // Sample
+        for (let s = 0; s < numSamples; s++) {
+          const y = s * dy;
+          const srcX = Math.min(srcW - 1, Math.max(0, Math.floor(X_c * (srcW / W))));
+          const srcY = Math.min(srcH - 1, Math.max(0, Math.floor(y * (srcH / H))));
+          
+          const idx = (srcY * srcW + srcX) * 4;
+          const r = srcData[idx];
+          const g = srcData[idx+1];
+          const b = srcData[idx+2];
+          
+          let L = 0.299 * r + 0.587 * g + 0.114 * b;
+          L += state.brightness;
+          L = 128 + (L - 128) * state.contrast;
+          L = Math.max(0, Math.min(255, L));
+          
+          const darkness = 1.0 - (L / 255.0);
+          rawWidths[s] = minW + darkness * (maxW - minW);
+        }
+        
+        // Smooth
+        for (let s = 0; s < numSamples; s++) {
+          if (smoothing === 0) {
+            smoothWidths[s] = rawWidths[s];
+            continue;
+          }
+          let sum = 0;
+          let count = 0;
+          for (let wIndex = s - smoothing; wIndex <= s + smoothing; wIndex++) {
+            if (wIndex >= 0 && wIndex < numSamples) {
+              sum += rawWidths[wIndex];
+              count++;
+            }
+          }
+          smoothWidths[s] = sum / count;
+        }
+        
+        // Construct SVG path string
+        let pathD = `M ${(X_c + smoothWidths[0]/2).toFixed(2)} 0`;
+        
+        // Right side
+        for (let s = 1; s < numSamples; s++) {
+          pathD += ` L ${(X_c + smoothWidths[s]/2).toFixed(2)} ${(s * dy).toFixed(1)}`;
+        }
+        
+        // Bottom overlap & Left side going back up
+        pathD += ` L ${(X_c - smoothWidths[numSamples - 1]/2).toFixed(2)} ${((numSamples - 1) * dy).toFixed(1)}`;
+        for (let s = numSamples - 2; s >= 0; s--) {
+          pathD += ` L ${(X_c - smoothWidths[s]/2).toFixed(2)} ${(s * dy).toFixed(1)}`;
+        }
+        pathD += ' Z';
+        
+        svgPaths += `  <path d="${pathD}" />\n`;
+      }
+      
+      // Compile SVG Components
+      let defs = '';
+      let bgElement = '';
+      let groupElement = '';
+      
+      // Background Rect
+      if (!state.transparentBg) {
+        if (preset.bgGradient) {
+          defs += `    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="${preset.bgGradient[0]}" />
+      <stop offset="100%" stop-color="${preset.bgGradient[1]}" />
+    </linearGradient>\n`;
+          bgElement = `  <rect width="${W}" height="${H}" fill="url(#bgGrad)" />\n`;
+        } else {
+          bgElement = `  <rect width="${W}" height="${H}" fill="${preset.bgColor}" />\n`;
+        }
+      }
+      
+      // Line Gradient Fill styling
+      if (preset.lineGradient) {
+        defs += `    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="${preset.lineGradient[0]}" />
+      <stop offset="100%" stop-color="${preset.lineGradient[1]}" />
+    </linearGradient>\n`;
+        groupElement = `  <g fill="url(#lineGrad)">\n`;
+      } else {
+        groupElement = `  <g fill="${preset.lineColor}">\n`;
+      }
+      
+      const wrappedDefs = defs ? `<defs>\n${defs}  </defs>\n` : '';
+      
+      return `<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" height="100%">
+${wrappedDefs}${bgElement}${groupElement}${svgPaths}  </g>
+</svg>`;
+    }
+
+    // -------------------------------------------------------------
+    // Position Coordinate Utilities
+    // -------------------------------------------------------------
+    function updateSourceOverlay() {
+      const sourceOverlay = document.getElementById('sourceOverlayCanvas');
+      const overlayCtx = sourceOverlay.getContext('2d');
+      sourceOverlay.width = sourceCanvas.width;
+      sourceOverlay.height = sourceCanvas.height;
+      overlayCtx.drawImage(sourceCanvas, 0, 0);
+    }
+
+    function resetPlacement() {
+      state.zoom = 1.0;
+      state.panX = 0;
+      state.panY = 0;
+      state.rotation = 0;
+      
+      // Reset Sliders
+      document.getElementById('zoomSlider').value = 1.0;
+      document.getElementById('zoomVal').innerText = '1.00x';
+      
+      triggerRedraw();
+    }
+
+    function adjustZoom(amount) {
+      const slider = document.getElementById('zoomSlider');
+      let newVal = parseFloat(slider.value) + amount;
+      newVal = Math.max(0.1, Math.min(5.0, newVal));
+      slider.value = newVal.toFixed(2);
+      state.zoom = newVal;
+      document.getElementById('zoomVal').innerText = newVal.toFixed(2) + 'x';
+      triggerRedraw();
+    }
+
+    function rotateImage() {
+      state.rotation = (state.rotation + 90) % 360;
+      triggerRedraw();
+    }
+
+    function changeAspectRatio() {
+      const select = document.getElementById('aspectRatioSelect');
+      state.aspectRatio = select.value;
+      
+      updateCanvasResolution();
+    }
+
+    function updateCanvasResolution() {
+      let w = 800;
+      let h = 800;
+      
+      if (state.aspectRatio === '4:3') {
+        h = 600;
+      } else if (state.aspectRatio === '16:9') {
+        h = 450;
+      } else if (state.aspectRatio === '3:4') {
+        w = 600;
+        h = 800;
+      } else if (state.aspectRatio === 'original' && state.image) {
+        const imgW = state.image.width || 800;
+        const imgH = state.image.height || 800;
+        const maxDim = 800;
+        
+        if (imgW >= imgH) {
+          w = maxDim;
+          h = Math.round((imgH / imgW) * maxDim);
+        } else {
+          h = maxDim;
+          w = Math.round((imgW / imgH) * maxDim);
+        }
+      }
+      
+      // Update sizes
+      sourceCanvas.width = w;
+      sourceCanvas.height = h;
+      renderCanvas.width = w;
+      renderCanvas.height = h;
+      
+      // Reset aspect bounds check in UI Frame
+      const frame = document.getElementById('canvasFrame');
+      frame.style.aspectRatio = `${w} / ${h}`;
+      
+      triggerRedraw();
+    }
+
+    // -------------------------------------------------------------
+    // Drag/Pan Interaction Implementation
+    // -------------------------------------------------------------
+    function initDragEvents() {
+      const canvas = document.getElementById('previewCanvas');
+      
+      const onStart = (clientX, clientY) => {
+        isDragging = true;
+        dragStartX = clientX;
+        dragStartY = clientY;
+        startPanX = state.panX;
+        startPanY = state.panY;
+        canvas.classList.add('cursor-grabbing');
+      };
+      
+      const onMove = (clientX, clientY) => {
+        if (!isDragging) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        const dx = (clientX - dragStartX) * scaleX;
+        const dy = (clientY - dragStartY) * scaleY;
+        
+        state.panX = startPanX + dx;
+        state.panY = startPanY + dy;
+        triggerRedraw();
+      };
+      
+      const onEnd = () => {
+        if (isDragging) {
+          isDragging = false;
+          canvas.classList.remove('cursor-grabbing');
+        }
+      };
+
+      // Mouse Listeners
+      canvas.addEventListener('mousedown', (e) => {
+        onStart(e.clientX, e.clientY);
+      });
+      window.addEventListener('mousemove', (e) => {
+        onMove(e.clientX, e.clientY);
+      });
+      window.addEventListener('mouseup', onEnd);
+      
+      // Touch Listeners
+      canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          onStart(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      });
+      canvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1) {
+          onMove(e.touches[0].clientX, e.touches[0].clientY);
+          e.preventDefault(); // Stop mobile scrolling
+        }
+      }, { passive: false });
+      canvas.addEventListener('touchend', onEnd);
+    }
+
+    // -------------------------------------------------------------
+    // File Handling
+    // -------------------------------------------------------------
+    function initFileHandlers() {
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('fileInput');
+      
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-cyan-500', 'bg-slate-800/40');
+      });
+      
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-cyan-500', 'bg-slate-800/40');
+      });
+      
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-cyan-500', 'bg-slate-800/40');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          processImageFile(e.dataTransfer.files[0]);
+        }
+      });
+      
+      dropZone.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          processImageFile(e.target.files[0]);
+        }
+      });
+
+      document.getElementById('clearSourceImgBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        loadSamplePattern('portrait');
+      });
+    }
+
+    function processImageFile(file) {
+      if (!file.type.match('image/png') && !file.type.match('image/jpeg')) {
+        alert('Invalid file format. Please upload a PNG or JPEG file.');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          state.image = img;
+          state.imageName = file.name;
+          
+          // Reset coordinate placement on new upload
+          state.zoom = 1.0;
+          state.panX = 0;
+          state.panY = 0;
+          state.rotation = 0;
+          
+          document.getElementById('zoomSlider').value = 1.0;
+          document.getElementById('zoomVal').innerText = '1.00x';
+          
+          updateSourceThumbnail(false);
+          
+          // Check if aspect ratio is set to original and trigger update
+          if (state.aspectRatio === 'original') {
+            updateCanvasResolution();
+          } else {
+            triggerRedraw();
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateSourceThumbnail(isPreset) {
+      const container = document.getElementById('sourceThumbnailContainer');
+      const thumbImg = document.getElementById('sourceThumbnailImg');
+      const nameTxt = document.getElementById('sourceImgName');
+      const resTxt = document.getElementById('sourceImgResolution');
+      
+      container.classList.remove('hidden');
+      nameTxt.innerText = state.imageName;
+      
+      if (isPreset) {
+        // Redraw thumbnail canvas to represent the vector shape preset
+        const thumbCanvas = document.createElement('canvas');
+        thumbCanvas.width = 100;
+        thumbCanvas.height = 100;
+        const thumbCtx = thumbCanvas.getContext('2d');
+        thumbCtx.drawImage(state.image, 0, 0, 100, 100);
+        thumbImg.src = thumbCanvas.toDataURL();
+        resTxt.innerText = '800 x 800 px (Preset)';
+      } else {
+        thumbImg.src = state.image.src;
+        resTxt.innerText = `${state.image.width} x ${state.image.height} px`;
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Slider Controllers
+    // -------------------------------------------------------------
+    function initSliders() {
+      const sliders = [
+        { id: 'zoomSlider', key: 'zoom', suffix: 'x', decimals: 2 },
+        { id: 'lineCountSlider', key: 'lineCount', suffix: '', decimals: 0 },
+        { id: 'maxWidthSlider', key: 'maxWidth', suffix: 'px', decimals: 1 },
+        { id: 'minWidthSlider', key: 'minWidth', suffix: 'px', decimals: 1 },
+        { id: 'smoothingSlider', key: 'smoothing', suffix: 'px', decimals: 0 },
+        { id: 'contrastSlider', key: 'contrast', suffix: 'x', decimals: 2 },
+        { id: 'brightnessSlider', key: 'brightness', suffix: '', decimals: 0 }
+      ];
+      
+      sliders.forEach((sliderDef) => {
+        const sliderEl = document.getElementById(sliderDef.id);
+        const valEl = document.getElementById(sliderDef.id.replace('Slider', 'Val'));
+        
+        sliderEl.addEventListener('input', (e) => {
+          const val = parseFloat(e.target.value);
+          state[sliderDef.key] = val;
+          valEl.innerText = val.toFixed(sliderDef.decimals) + sliderDef.suffix;
+          triggerRedraw();
+        });
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Palette Preloads Setup
+    // -------------------------------------------------------------
+    function initPaletteSelector() {
+      const grid = document.getElementById('paletteGrid');
+      
+      Object.keys(presets).forEach((key) => {
+        const preset = presets[key];
+        const btn = document.createElement('button');
+        btn.id = `preset-btn-${key}`;
+        btn.title = preset.name;
+        
+        btn.className = `w-full aspect-square rounded-xl border-2 transition duration-200 shadow-sm relative group cursor-pointer ${preset.previewClass} ${
+          state.colorPreset === key ? 'border-cyan-400 scale-[1.08] ring-2 ring-cyan-500/20 shadow-cyan-500/10' : 'border-slate-800 hover:border-slate-600 hover:scale-[1.04]'
+        }`;
+        
+        // Internal Color Dots representing bgColor and Line colors
+        btn.innerHTML = `
+          <div class="absolute inset-0 rounded-lg flex items-center justify-center">
+            <span class="text-[9px] font-bold opacity-0 group-hover:opacity-100 transition duration-150 ${
+              key === 'monochrome-light' || key === 'sepia' ? 'text-slate-800' : 'text-slate-200'
+            }">${preset.name.split(' ')[0]}</span>
+          </div>
+        `;
+        
+        btn.addEventListener('click', () => {
+          // Deselect active preset button
+          const activeBtn = document.getElementById(`preset-btn-${state.colorPreset}`);
+          if (activeBtn) {
+            activeBtn.classList.remove('border-cyan-400', 'scale-[1.08]', 'ring-2', 'ring-cyan-500/20', 'shadow-cyan-500/10');
+            activeBtn.classList.add('border-slate-800');
+          }
+          
+          state.colorPreset = key;
+          
+          btn.classList.remove('border-slate-800');
+          btn.classList.add('border-cyan-400', 'scale-[1.08]', 'ring-2', 'ring-cyan-500/20', 'shadow-cyan-500/10');
+          
+          triggerRedraw();
+        });
+        
+        grid.appendChild(btn);
+      });
+    }
+
+    function toggleTransparency() {
+      const checkbox = document.getElementById('transparencyToggle');
+      state.transparentBg = checkbox.checked;
+      
+      // Update check indicator class in UI Frame
+      const checkerboard = document.getElementById('checkerboard');
+      if (state.transparentBg) {
+        checkerboard.classList.remove('hidden');
+      } else {
+        checkerboard.classList.add('hidden');
+      }
+      
+      triggerRedraw();
+    }
+
+    function toggleHighResExport() {
+      const checkbox = document.getElementById('highResExportToggle');
+      state.highResExport = checkbox.checked;
+    }
+
+    // -------------------------------------------------------------
+    // Compare Button Event Handlers
+    // -------------------------------------------------------------
+    function initCompareHandler() {
+      const btn = document.getElementById('compareBtn');
+      
+      const onShow = () => {
+        updateSourceOverlay();
+        const overlay = document.getElementById('sourceOverlayCanvas');
+        overlay.classList.remove('opacity-0');
+        overlay.classList.add('opacity-70');
+      };
+      
+      const onHide = () => {
+        const overlay = document.getElementById('sourceOverlayCanvas');
+        overlay.classList.remove('opacity-70');
+        overlay.classList.add('opacity-0');
+      };
+      
+      btn.addEventListener('mousedown', onShow);
+      btn.addEventListener('mouseup', onHide);
+      btn.addEventListener('mouseleave', onHide);
+      
+      btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        onShow();
+      });
+      btn.addEventListener('touchend', onHide);
+    }
+
+    // -------------------------------------------------------------
+    // Export Operations
+    // -------------------------------------------------------------
+    function downloadPNG() {
+      let exportW = 800;
+      let exportH = 800;
+      
+      // If High-Res mode active and we have an image, fetch original size
+      if (state.highResExport && state.image) {
+        const imgW = state.image.width || 800;
+        const imgH = state.image.height || 800;
+        
+        // Handle aspect changes for presets vs images
+        if (state.aspectRatio === 'original') {
+          if (state.rotation === 90 || state.rotation === 270) {
+            exportW = imgH;
+            exportH = imgW;
+          } else {
+            exportW = imgW;
+            exportH = imgH;
+          }
+        } else {
+          // Adjust aspect bounds based on setting
+          let aspect = 1.0;
+          if (state.aspectRatio === '4:3') aspect = 4/3;
+          else if (state.aspectRatio === '16:9') aspect = 16/9;
+          else if (state.aspectRatio === '3:4') aspect = 3/4;
+          
+          if (state.rotation === 90 || state.rotation === 270) {
+            exportW = imgH;
+            exportH = Math.round(imgH / aspect);
+          } else {
+            exportW = imgW;
+            exportH = Math.round(imgW / aspect);
+          }
+        }
+      } else {
+        exportW = renderCanvas.width;
+        exportH = renderCanvas.height;
+      }
+      
+      const expSrc = document.createElement('canvas');
+      expSrc.width = exportW;
+      expSrc.height = exportH;
+      
+      const expDst = document.createElement('canvas');
+      expDst.width = exportW;
+      expDst.height = exportH;
+      
+      // Relative scale factor between output canvas and preview canvas
+      const scaleFactor = exportW / renderCanvas.width;
+      
+      // Render source image inside rotated bounds
+      const ctxSrc = expSrc.getContext('2d');
+      ctxSrc.save();
+      ctxSrc.translate(exportW / 2 + state.panX * scaleFactor, exportH / 2 + state.panY * scaleFactor);
+      ctxSrc.rotate((state.rotation * Math.PI) / 180);
+      ctxSrc.scale(state.zoom, state.zoom);
+      
+      if (state.image) {
+        const imgW = state.image.width;
+        const imgH = state.image.height;
+        
+        // Aspect cover size mapping relative to preview width/height, scaled up by scaleFactor
+        const scale = Math.max(renderCanvas.width / imgW, renderCanvas.height / imgH);
+        const drawW = imgW * scale * scaleFactor;
+        const drawH = imgH * scale * scaleFactor;
+        
+        ctxSrc.drawImage(state.image, -drawW / 2, -drawH / 2, drawW, drawH);
+      }
+      ctxSrc.restore();
+      
+      // Draw modulated output paths
+      renderLineModulation(expSrc, expDst, true);
+      
+      // Trigger download
+      const filename = state.imageName.split('.')[0] + '_optical_art.png';
+      const link = document.createElement('a');
+      link.href = expDst.toDataURL('image/png');
+      link.download = filename;
+      link.click();
+    }
+
+    function downloadSVG() {
+      const svgString = generateSVGString();
+      const filename = state.imageName.split('.')[0] + '_optical_art.svg';
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      
+      URL.revokeObjectURL(url);
+    }
+
+    // -------------------------------------------------------------
+    // Initialization setup
+    // -------------------------------------------------------------
+    function init() {
+      // Setup canvases
+      sourceCanvas = document.createElement('canvas');
+      renderCanvas = document.createElement('canvas');
+      
+      sourceCanvas.width = 800;
+      sourceCanvas.height = 800;
+      renderCanvas.width = 800;
+      renderCanvas.height = 800;
+
+      // Event init
+      initCompareHandler();
+      initDragEvents();
+      initFileHandlers();
+      initSliders();
+      initPaletteSelector();
+      
+      // Initial Pattern load
+      loadSamplePattern('portrait');
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
