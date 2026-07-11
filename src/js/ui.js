@@ -328,9 +328,9 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
       railToggleIcon.classList.add('rotate-180');
       railToggleBtn.title = "Collapse Toolbar";
       
-      // Show labels, hide tooltips
+      // Show labels, hide tooltips completely
       document.querySelectorAll('.rail-label').forEach(el => el.classList.remove('hidden'));
-      document.querySelectorAll('.rail-tooltip').forEach(el => el.classList.add('opacity-0', 'pointer-events-none'));
+      document.querySelectorAll('.rail-tooltip').forEach(el => el.classList.add('hidden'));
     } else {
       navRail.classList.remove('w-56');
       navRail.classList.add('w-16');
@@ -339,7 +339,7 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
       
       // Hide labels, enable tooltips
       document.querySelectorAll('.rail-label').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.rail-tooltip').forEach(el => el.classList.remove('opacity-0', 'pointer-events-none'));
+      document.querySelectorAll('.rail-tooltip').forEach(el => el.classList.remove('hidden'));
     }
   });
 
