@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-07-11
+
+### Added
+- **Halftone Matrix Engine (Module 2):** Developed a decoupled halftone matrix renderer (`src/js/halftone.js`) that transforms luminance values into a 2D grid of scalable geometric nodes.
+- **Granular Matrix Toolbar Controls:** Exposed layout controls for Grid Scale, Screen Rotation Angle ($0^\circ$ to $90^\circ$), Node Shape (Circle, Square, Diamond), Max Shape Scale, Min Threshold filtering, and Invert mapping.
+- **Unified SVG & PNG Exporters:** Extended download routines to compile vector graphics (utilizing `<circle>` and rotated `<polygon>` coords) or scale high-res raster outputs matching the current active module.
+
 ## [1.3.0] - 2026-07-11
 
 ### Added

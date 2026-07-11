@@ -1,167 +1,234 @@
 import { state } from './state.js';
 import { presets } from './presets.js';
 import { renderLineModulation } from './engine.js';
+import { renderHalftoneMatrix } from './halftone.js';
 export function generateSVGString(sourceCanvas, renderCanvas) {
   const W = 800;
   const H = 800;
   const preset = presets[state.colorPreset];
   
-  const N = state.lineCount;
-  const maxW = state.maxWidth;
-  const minW = state.minWidth;
-  const smoothing = state.smoothing;
-  
-  // Step sample resolution for vector coordinates
-  const dy = 2;
-  
-  // Read data from active source offscreen canvas
-  const srcCtx = sourceCanvas.getContext('2d');
-  const srcW = sourceCanvas.width;
-  const srcH = sourceCanvas.height;
-  const srcData = srcCtx.getImageData(0, 0, srcW, srcH).data;
-  
-  // Line angle math
-  const alpha = (state.lineAngle * Math.PI) / 180;
-  const cosA = Math.cos(alpha);
-  const sinA = Math.sin(alpha);
-  
-  // Calculate bounding u coordinates perpendicular to the lines
-  const u0 = 0;
-  const u1 = W * cosA;
-  const u2 = -H * sinA;
-  const u3 = W * cosA - H * sinA;
-  const uMin = Math.min(u0, u1, u2, u3);
-  const uMax = Math.max(u0, u1, u2, u3);
-  
-  const uRange = uMax - uMin;
-  const spacing = uRange / N;
-  
-  // Helper to get exact intersection of a line with the canvas bounds
-  function getLineIntersection(U_c) {
-    let vMin = -Infinity;
-    let vMax = Infinity;
-    
-    if (Math.abs(sinA) > 1e-6) {
-      const v1 = (-U_c * cosA) / sinA;
-      const v2 = (W - U_c * cosA) / sinA;
-      vMin = Math.max(vMin, Math.min(v1, v2));
-      vMax = Math.min(vMax, Math.max(v1, v2));
-    } else {
-      const x = U_c * cosA;
-      if (x < 0 || x > W) return null;
-    }
-    
-    if (Math.abs(cosA) > 1e-6) {
-      const v1 = (U_c * sinA) / cosA;
-      const v2 = (H + U_c * sinA) / cosA;
-      vMin = Math.max(vMin, Math.min(v1, v2));
-      vMax = Math.min(vMax, Math.max(v1, v2));
-    } else {
-      const y = -U_c * sinA;
-      if (y < 0 || y > H) return null;
-    }
-    
-    if (vMin > vMax) return null;
-    return { vStart: vMin, vEnd: vMax };
-  }
-  
   let svgPaths = '';
-  
-  for (let i = 0; i < N; i++) {
-    const U_c = uMin + (i + 0.5) * spacing;
-    
-    const intersect = getLineIntersection(U_c);
-    if (!intersect) continue;
-    
-    const { vStart, vEnd } = intersect;
-    const L = vEnd - vStart;
-    if (L <= 0) continue;
-    
-    const numSamples = Math.ceil(L / dy);
-    if (numSamples < 2) continue;
-    
-    const rawWidths = new Float32Array(numSamples);
-    const smoothWidths = new Float32Array(numSamples);
-    
-    // Sample
-    for (let s = 0; s < numSamples; s++) {
-      const v = vStart + s * dy;
-      const canvasX = U_c * cosA + v * sinA;
-      const canvasY = -U_c * sinA + v * cosA;
+
+  if (state.activeModule === 'line-modulation') {
+    const N = state.lineCount;
+    const maxW = state.maxWidth;
+    const minW = state.minWidth;
+    const smoothing = state.smoothing;
+    const dy = 2;
+
+    const alpha = (state.lineAngle * Math.PI) / 180;
+    const cosA = Math.cos(alpha);
+    const sinA = Math.sin(alpha);
+
+    const u0 = 0;
+    const u1 = W * cosA;
+    const u2 = -H * sinA;
+    const u3 = W * cosA - H * sinA;
+    const uMin = Math.min(u0, u1, u2, u3);
+    const uMax = Math.max(u0, u1, u2, u3);
+
+    const uRange = uMax - uMin;
+    const spacing = uRange / N;
+
+    // Helper to get exact intersection of a line with the canvas bounds
+    const getLineIntersection = (U_c) => {
+      let vMin = -Infinity;
+      let vMax = Infinity;
       
-      const srcX = Math.min(srcW - 1, Math.max(0, Math.floor(canvasX * (srcW / W))));
-      const srcY = Math.min(srcH - 1, Math.max(0, Math.floor(canvasY * (srcH / H))));
-      
-      const idx = (srcY * srcW + srcX) * 4;
-      const r = srcData[idx];
-      const g = srcData[idx+1];
-      const b = srcData[idx+2];
-      
-      let luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-      luminance += state.brightness;
-      luminance = 128 + (luminance - 128) * state.contrast;
-      luminance = Math.max(0, Math.min(255, luminance));
-      
-      const darkness = 1.0 - (luminance / 255.0);
-      rawWidths[s] = minW + darkness * (maxW - minW);
-    }
-    
-    // Smooth
-    for (let s = 0; s < numSamples; s++) {
-      if (smoothing === 0) {
-        smoothWidths[s] = rawWidths[s];
-        continue;
+      if (Math.abs(sinA) > 1e-6) {
+        const v1 = (-U_c * cosA) / sinA;
+        const v2 = (W - U_c * cosA) / sinA;
+        vMin = Math.max(vMin, Math.min(v1, v2));
+        vMax = Math.min(vMax, Math.max(v1, v2));
+      } else {
+        const x = U_c * cosA;
+        if (x < 0 || x > W) return null;
       }
-      let sum = 0;
-      let count = 0;
-      for (let wIndex = s - smoothing; wIndex <= s + smoothing; wIndex++) {
-        if (wIndex >= 0 && wIndex < numSamples) {
-          sum += rawWidths[wIndex];
-          count++;
+      
+      if (Math.abs(cosA) > 1e-6) {
+        const v1 = (U_c * sinA) / cosA;
+        const v2 = (H + U_c * sinA) / cosA;
+        vMin = Math.max(vMin, Math.min(v1, v2));
+        vMax = Math.min(vMax, Math.max(v1, v2));
+      } else {
+        const y = -U_c * sinA;
+        if (y < 0 || y > H) return null;
+      }
+      
+      if (vMin > vMax) return null;
+      return { vStart: vMin, vEnd: vMax };
+    };
+
+    for (let i = 0; i < N; i++) {
+      const U_c = uMin + (i + 0.5) * spacing;
+      
+      const intersect = getLineIntersection(U_c);
+      if (!intersect) continue;
+      
+      const { vStart, vEnd } = intersect;
+      const L = vEnd - vStart;
+      if (L <= 0) continue;
+      
+      const numSamples = Math.ceil(L / dy);
+      if (numSamples < 2) continue;
+      
+      const rawWidths = new Float32Array(numSamples);
+      const smoothWidths = new Float32Array(numSamples);
+      
+      // Sample
+      for (let s = 0; s < numSamples; s++) {
+        const v = vStart + s * dy;
+        const canvasX = U_c * cosA + v * sinA;
+        const canvasY = -U_c * sinA + v * cosA;
+        
+        const srcX = Math.min(srcW - 1, Math.max(0, Math.floor(canvasX * (srcW / W))));
+        const srcY = Math.min(srcH - 1, Math.max(0, Math.floor(canvasY * (srcH / H))));
+        
+        const idx = (srcY * srcW + srcX) * 4;
+        const r = srcData[idx];
+        const g = srcData[idx+1];
+        const b = srcData[idx+2];
+        
+        let luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        luminance += state.brightness;
+        luminance = 128 + (luminance - 128) * state.contrast;
+        luminance = Math.max(0, Math.min(255, luminance));
+        
+        const darkness = 1.0 - (luminance / 255.0);
+        rawWidths[s] = minW + darkness * (maxW - minW);
+      }
+      
+      // Smooth
+      for (let s = 0; s < numSamples; s++) {
+        if (smoothing === 0) {
+          smoothWidths[s] = rawWidths[s];
+          continue;
+        }
+        let sum = 0;
+        let count = 0;
+        for (let wIndex = s - smoothing; wIndex <= s + smoothing; wIndex++) {
+          if (wIndex >= 0 && wIndex < numSamples) {
+            sum += rawWidths[wIndex];
+            count++;
+          }
+        }
+        smoothWidths[s] = sum / count;
+      }
+      
+      // Construct SVG path string
+      let rightPoints = [];
+      let leftPoints = [];
+      
+      for (let s = 0; s < numSamples; s++) {
+        const v = vStart + s * dy;
+        const cX = U_c * cosA + v * sinA;
+        const cY = -U_c * sinA + v * cosA;
+        const halfW = smoothWidths[s] / 2;
+        
+        const xR = cX + halfW * cosA;
+        const yR = cY - halfW * sinA;
+        rightPoints.push(`${xR.toFixed(2)},${yR.toFixed(2)}`);
+      }
+      
+      for (let s = numSamples - 1; s >= 0; s--) {
+        const v = vStart + s * dy;
+        const cX = U_c * cosA + v * sinA;
+        const cY = -U_c * sinA + v * cosA;
+        const halfW = smoothWidths[s] / 2;
+        
+        const xL = cX - halfW * cosA;
+        const yL = cY + halfW * sinA;
+        leftPoints.push(`${xL.toFixed(2)},${yL.toFixed(2)}`);
+      }
+      
+      const firstPt = rightPoints[0].split(',');
+      let pathD = `M ${firstPt[0]} ${firstPt[1]}`;
+      for (let s = 1; s < rightPoints.length; s++) {
+        const pt = rightPoints[s].split(',');
+        pathD += ` L ${pt[0]} ${pt[1]}`;
+      }
+      for (let s = 0; s < leftPoints.length; s++) {
+        const pt = leftPoints[s].split(',');
+        pathD += ` L ${pt[0]} ${pt[1]}`;
+      }
+      pathD += ' Z';
+      
+      svgPaths += `  <path d="${pathD}" />\n`;
+    }
+  } else if (state.activeModule === 'dot-halftone') {
+    const cellSize = state.halftoneCellSize;
+    const angleDeg = state.halftoneAngle;
+    const shape = state.halftoneShape;
+    const maxScale = state.halftoneMaxScale;
+    const minThreshold = state.halftoneMinThreshold;
+    const invert = state.halftoneInvert;
+
+    const theta = (angleDeg * Math.PI) / 180;
+    const cosT = Math.cos(theta);
+    const sinT = Math.sin(theta);
+
+    const D = Math.ceil(Math.sqrt(W * W + H * H));
+    const halfD = D / 2;
+
+    for (let uy = -halfD; uy <= halfD; uy += cellSize) {
+      for (let ux = -halfD; ux <= halfD; ux += cellSize) {
+        const x = ux * cosT + uy * sinT + W / 2;
+        const y = -ux * sinT + uy * cosT + H / 2;
+
+        if (x < 0 || x >= W || y < 0 || y >= H) continue;
+
+        const srcX = Math.min(srcW - 1, Math.max(0, Math.floor(x * (srcW / W))));
+        const srcY = Math.min(srcH - 1, Math.max(0, Math.floor(y * (srcH / H))));
+
+        const idx = (srcY * srcW + srcX) * 4;
+        const r = srcData[idx];
+        const g = srcData[idx + 1];
+        const b = srcData[idx + 2];
+
+        let luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        luminance += state.brightness;
+        luminance = 128 + (luminance - 128) * state.contrast;
+        luminance = Math.max(0, Math.min(255, luminance));
+
+        let d = 1.0 - (luminance / 255.0);
+        if (invert) {
+          d = luminance / 255.0;
+        }
+
+        if (d < minThreshold) continue;
+
+        const size = cellSize * d * maxScale;
+        if (size <= 0) continue;
+
+        if (shape === 'Circle') {
+          svgPaths += `  <circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${(size / 2).toFixed(2)}" />\n`;
+        } else if (shape === 'Square') {
+          const vrx = (size / 2) * cosT;
+          const vry = (size / 2) * sinT;
+          const vux = -(size / 2) * sinT;
+          const vuy = (size / 2) * cosT;
+
+          const p1 = `${(x - vrx - vux).toFixed(2)},${(y - vry - vuy).toFixed(2)}`;
+          const p2 = `${(x + vrx - vux).toFixed(2)},${(y + vry - vuy).toFixed(2)}`;
+          const p3 = `${(x + vrx + vux).toFixed(2)},${(y + vry + vuy).toFixed(2)}`;
+          const p4 = `${(x - vrx + vux).toFixed(2)},${(y - vry + vuy).toFixed(2)}`;
+
+          svgPaths += `  <polygon points="${p1} ${p2} ${p3} ${p4}" />\n`;
+        } else if (shape === 'Diamond') {
+          const vrx = (size / 2) * cosT;
+          const vry = (size / 2) * sinT;
+          const vux = -(size / 2) * sinT;
+          const vuy = (size / 2) * cosT;
+
+          const p1 = `${(x - vux).toFixed(2)},${(y - vuy).toFixed(2)}`;
+          const p2 = `${(x + vrx).toFixed(2)},${(y + vry).toFixed(2)}`;
+          const p3 = `${(x + vux).toFixed(2)},${(y + vuy).toFixed(2)}`;
+          const p4 = `${(x - vrx).toFixed(2)},${(y - vry).toFixed(2)}`;
+
+          svgPaths += `  <polygon points="${p1} ${p2} ${p3} ${p4}" />\n`;
         }
       }
-      smoothWidths[s] = sum / count;
     }
-    
-    // Construct SVG path string
-    let rightPoints = [];
-    let leftPoints = [];
-    
-    for (let s = 0; s < numSamples; s++) {
-      const v = vStart + s * dy;
-      const cX = U_c * cosA + v * sinA;
-      const cY = -U_c * sinA + v * cosA;
-      const halfW = smoothWidths[s] / 2;
-      
-      const xR = cX + halfW * cosA;
-      const yR = cY - halfW * sinA;
-      rightPoints.push(`${xR.toFixed(2)},${yR.toFixed(2)}`);
-    }
-    
-    for (let s = numSamples - 1; s >= 0; s--) {
-      const v = vStart + s * dy;
-      const cX = U_c * cosA + v * sinA;
-      const cY = -U_c * sinA + v * cosA;
-      const halfW = smoothWidths[s] / 2;
-      
-      const xL = cX - halfW * cosA;
-      const yL = cY + halfW * sinA;
-      leftPoints.push(`${xL.toFixed(2)},${yL.toFixed(2)}`);
-    }
-    
-    const firstPt = rightPoints[0].split(',');
-    let pathD = `M ${firstPt[0]} ${firstPt[1]}`;
-    for (let s = 1; s < rightPoints.length; s++) {
-      const pt = rightPoints[s].split(',');
-      pathD += ` L ${pt[0]} ${pt[1]}`;
-    }
-    for (let s = 0; s < leftPoints.length; s++) {
-      const pt = leftPoints[s].split(',');
-      pathD += ` L ${pt[0]} ${pt[1]}`;
-    }
-    pathD += ' Z';
-    
-    svgPaths += `  <path d="${pathD}" />\n`;
   }
   
   // Compile SVG Components
@@ -271,7 +338,11 @@ export function downloadPNG(renderCanvas) {
   ctxSrc.restore();
   
   // Draw modulated output paths
-  renderLineModulation(expSrc, expDst, true);
+  if (state.activeModule === 'line-modulation') {
+    renderLineModulation(expSrc, expDst, true);
+  } else if (state.activeModule === 'dot-halftone') {
+    renderHalftoneMatrix(expSrc, expDst, true);
+  }
   
   // Trigger download
   const filename = state.imageName.split('.')[0] + '_optical_art.png';

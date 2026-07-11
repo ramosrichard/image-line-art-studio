@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { presets } from './presets.js';
 import { drawSourceImage, renderLineModulation } from './engine.js';
+import { renderHalftoneMatrix } from './halftone.js';
 import { drawShadedSphere, drawRippleWaves, drawSilhouettePortrait } from './generators.js';
 import { initUI } from './ui.js';
 
@@ -22,6 +23,8 @@ function triggerRedraw() {
     
     if (state.activeModule === 'line-modulation') {
       renderLineModulation(sourceCanvas, renderCanvas, false, updateStats);
+    } else if (state.activeModule === 'dot-halftone') {
+      renderHalftoneMatrix(sourceCanvas, renderCanvas, false, updateStats);
     } else {
       const ctx = renderCanvas.getContext('2d');
       const w = renderCanvas.width;

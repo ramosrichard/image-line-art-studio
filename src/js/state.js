@@ -19,6 +19,14 @@ export const state = {
   contrast: 1.0,
   brightness: 0,
 
+  // Halftone Matrix Algorithm parameters
+  halftoneCellSize: 12,
+  halftoneAngle: 45,
+  halftoneShape: 'Circle', // 'Circle', 'Square', 'Diamond'
+  halftoneMaxScale: 1.0,
+  halftoneMinThreshold: 0.05,
+  halftoneInvert: false,
+
   // Aesthetics & Output config
   transparentBg: false,
   colorPreset: 'monochrome-light',

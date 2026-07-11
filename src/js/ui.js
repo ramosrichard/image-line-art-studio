@@ -25,6 +25,18 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
   const contrastVal = document.getElementById('contrastVal');
   const brightnessSlider = document.getElementById('brightnessSlider');
   const brightnessVal = document.getElementById('brightnessVal');
+
+  // DOM Halftone Matrix Elements
+  const halftoneCellSizeSlider = document.getElementById('halftoneCellSizeSlider');
+  const halftoneCellSizeVal = document.getElementById('halftoneCellSizeVal');
+  const halftoneAngleSlider = document.getElementById('halftoneAngleSlider');
+  const halftoneAngleVal = document.getElementById('halftoneAngleVal');
+  const halftoneShapeSelect = document.getElementById('halftoneShapeSelect');
+  const halftoneMaxScaleSlider = document.getElementById('halftoneMaxScaleSlider');
+  const halftoneMaxScaleVal = document.getElementById('halftoneMaxScaleVal');
+  const halftoneMinThresholdSlider = document.getElementById('halftoneMinThresholdSlider');
+  const halftoneMinThresholdVal = document.getElementById('halftoneMinThresholdVal');
+  const halftoneInvertToggle = document.getElementById('halftoneInvertToggle');
   
   const fileInput = document.getElementById('fileInput');
   const dropZone = document.getElementById('dropZone');
@@ -73,16 +85,37 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
     { el: minWidthSlider, valEl: minWidthVal, key: 'minWidth', suffix: 'px', decimals: 1 },
     { el: smoothingSlider, valEl: smoothingVal, key: 'smoothing', suffix: 'px', decimals: 0 },
     { el: contrastSlider, valEl: contrastVal, key: 'contrast', suffix: 'x', decimals: 2 },
-    { el: brightnessSlider, valEl: brightnessVal, key: 'brightness', suffix: '', decimals: 0 }
+    { el: brightnessSlider, valEl: brightnessVal, key: 'brightness', suffix: '', decimals: 0 },
+    
+    // Halftone Slider Bindings
+    { el: halftoneCellSizeSlider, valEl: halftoneCellSizeVal, key: 'halftoneCellSize', suffix: 'px', decimals: 0 },
+    { el: halftoneAngleSlider, valEl: halftoneAngleVal, key: 'halftoneAngle', suffix: '°', decimals: 0 },
+    { el: halftoneMaxScaleSlider, valEl: halftoneMaxScaleVal, key: 'halftoneMaxScale', format: (v) => Math.round(v * 100) + '%' },
+    { el: halftoneMinThresholdSlider, valEl: halftoneMinThresholdVal, key: 'halftoneMinThreshold', format: (v) => Math.round(v * 100) + '%' }
   ];
 
   sliders.forEach((sliderDef) => {
     sliderDef.el.addEventListener('input', (e) => {
       const val = parseFloat(e.target.value);
       state[sliderDef.key] = val;
-      sliderDef.valEl.innerText = val.toFixed(sliderDef.decimals) + sliderDef.suffix;
+      if (sliderDef.format) {
+        sliderDef.valEl.innerText = sliderDef.format(val);
+      } else {
+        sliderDef.valEl.innerText = val.toFixed(sliderDef.decimals) + sliderDef.suffix;
+      }
       triggerRedraw();
     });
+  });
+
+  // Non-slider Halftone bindings
+  halftoneShapeSelect.addEventListener('change', (e) => {
+    state.halftoneShape = e.target.value;
+    triggerRedraw();
+  });
+
+  halftoneInvertToggle.addEventListener('change', (e) => {
+    state.halftoneInvert = e.target.checked;
+    triggerRedraw();
   });
 
   // Canvas Drag/Pan coordinates tracking
