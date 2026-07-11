@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { presets } from './presets.js';
 import { drawSourceImage, renderLineModulation } from './engine.js';
 import { drawShadedSphere, drawRippleWaves, drawSilhouettePortrait } from './generators.js';
 import { initUI } from './ui.js';
@@ -19,7 +20,65 @@ function triggerRedraw() {
       if (el) el.innerText = duration.toFixed(1) + 'ms';
     };
     
-    renderLineModulation(sourceCanvas, renderCanvas, false, updateStats);
+    if (state.activeModule === 'line-modulation') {
+      renderLineModulation(sourceCanvas, renderCanvas, false, updateStats);
+    } else {
+      const ctx = renderCanvas.getContext('2d');
+      const w = renderCanvas.width;
+      const h = renderCanvas.height;
+      
+      // Clear
+      ctx.clearRect(0, 0, w, h);
+      
+      const preset = presets[state.colorPreset];
+      
+      // Draw background
+      if (!state.transparentBg) {
+        if (preset.bgGradient) {
+          const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+          bgGrad.addColorStop(0, preset.bgGradient[0]);
+          bgGrad.addColorStop(1, preset.bgGradient[1]);
+          ctx.fillStyle = bgGrad;
+        } else {
+          ctx.fillStyle = preset.bgColor;
+        }
+        ctx.fillRect(0, 0, w, h);
+      }
+      
+      // Draw text
+      if (preset.lineGradient) {
+        const textGrad = ctx.createLinearGradient(0, 0, w, 0);
+        textGrad.addColorStop(0, preset.lineGradient[0]);
+        textGrad.addColorStop(1, preset.lineGradient[1]);
+        ctx.fillStyle = textGrad;
+      } else {
+        ctx.fillStyle = preset.lineColor || '#ffffff';
+      }
+      
+      ctx.font = 'bold 24px Outfit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      let moduleTitle = 'Artistic Module';
+      let icon = '🎨';
+      if (state.activeModule === 'dot-halftone') {
+        moduleTitle = 'Dot Halftone Studio';
+        icon = '⚫';
+      } else if (state.activeModule === 'geometric-triangles') {
+        moduleTitle = 'Delaunay Mesh Studio';
+        icon = '🔺';
+      }
+      
+      ctx.fillText(icon, w / 2, h / 2 - 30);
+      ctx.fillText(`${moduleTitle}`, w / 2, h / 2 + 10);
+      
+      ctx.font = '13px Inter, sans-serif';
+      ctx.fillStyle = '#64748b'; // soft slate
+      ctx.fillText('Module Under Construction', w / 2, h / 2 + 50);
+      
+      const el = document.getElementById('renderTimeVal');
+      if (el) el.innerText = '0.0ms';
+    }
     
     // Draw on preview viewport canvas
     const previewCanvas = document.getElementById('previewCanvas');

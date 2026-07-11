@@ -75,6 +75,54 @@
     <!-- Left Sidebar: Controls -->
     <section class="w-full md:w-96 bg-slate-900 border-r border-slate-800 flex flex-col overflow-y-auto z-20 flex-shrink-0">
       
+      <!-- Module Selector -->
+      <div class="p-5 border-b border-slate-800 relative z-30">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold tracking-wider text-slate-400 uppercase">Artistic Studio Module</h2>
+          <div id="moduleDropdownContainer" class="relative">
+            <!-- Icon-only collapsible toggle button -->
+            <button id="moduleDropdownBtn" class="w-10 h-10 bg-slate-850 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg flex items-center justify-center shadow-md transition duration-150 cursor-pointer focus:outline-none relative group" title="Switch Module">
+              <span id="activeModuleIcon" class="text-lg">🌊</span>
+              <span class="absolute bottom-0.5 right-0.5 text-[6px] text-slate-500 font-bold">▼</span>
+              
+              <div class="absolute left-12 top-1/2 -translate-y-1/2 px-2 py-1 bg-slate-950 border border-slate-800 text-[10px] text-slate-300 rounded shadow-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-40">
+                Switch Studio Module
+              </div>
+            </button>
+            
+            <!-- Dropdown Options Panel -->
+            <div id="moduleDropdownPanel" class="hidden absolute top-12 right-0 w-64 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl z-50 p-1.5 space-y-1">
+              <div class="px-2.5 py-1 text-[9px] font-bold text-slate-500 uppercase tracking-wider">Select Module</div>
+              
+              <button onclick="selectModule('line-modulation')" id="btn-opt-line-modulation" class="w-full flex items-center gap-2.5 p-2 rounded-md text-left transition hover:bg-slate-800/80 border border-transparent cursor-pointer">
+                <span class="text-base text-cyan-400">🌊</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-medium text-slate-200">Line Modulation</div>
+                  <div class="text-[9px] text-slate-500 truncate">Vertical/angled ribbon halftones</div>
+                </div>
+                <span id="check-line-modulation" class="text-cyan-400 text-[10px] font-bold">✓</span>
+              </button>
+              
+              <button onclick="selectModule('dot-halftone')" id="btn-opt-dot-halftone" class="w-full flex items-center gap-2.5 p-2 rounded-md text-left transition hover:bg-slate-800/80 border border-transparent cursor-pointer">
+                <span class="text-base text-slate-400">⚫</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-medium text-slate-400">Dot Halftone</div>
+                  <div class="text-[9px] text-slate-500 truncate">Stippled dot matrices (Coming Soon)</div>
+                </div>
+              </button>
+              
+              <button onclick="selectModule('geometric-triangles')" id="btn-opt-geometric-triangles" class="w-full flex items-center gap-2.5 p-2 rounded-md text-left transition hover:bg-slate-800/80 border border-transparent cursor-pointer">
+                <span class="text-base text-slate-400">🔺</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-medium text-slate-400">Delaunay Mesh</div>
+                  <div class="text-[9px] text-slate-500 truncate">Low-poly geometric mesh (Coming Soon)</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <!-- Upload & Preload Templates Section -->
       <div class="p-5 border-b border-slate-800 space-y-4">
         <h2 class="text-xs font-bold tracking-wider text-slate-400 uppercase">1. Image & Input Source</h2>
@@ -169,74 +217,91 @@
       <div class="p-5 border-b border-slate-800 space-y-5 flex-1">
         <h2 class="text-xs font-bold tracking-wider text-slate-400 uppercase">3. Modulation Controls</h2>
 
-        <!-- Line Count -->
-        <div class="space-y-1.5">
-          <div class="flex justify-between text-xs font-medium">
-            <span class="text-slate-400">Number of Lines</span>
-            <span id="lineCountVal" class="text-cyan-400 font-mono">60</span>
+        <!-- Line Modulation Controls Panel -->
+        <div id="panel-controls-line-modulation" class="space-y-5">
+          <!-- Line Count -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-medium">
+              <span class="text-slate-400">Number of Lines</span>
+              <span id="lineCountVal" class="text-cyan-400 font-mono">60</span>
+            </div>
+            <input type="range" id="lineCountSlider" min="20" max="200" step="1" value="60" class="w-full">
+            <p class="text-[10px] text-slate-500">Controls the total number of lines spanning the art.</p>
           </div>
-          <input type="range" id="lineCountSlider" min="20" max="200" step="1" value="60" class="w-full">
-          <p class="text-[10px] text-slate-500">Controls the total number of lines spanning the art.</p>
+
+          <!-- Line Angle -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-medium">
+              <span class="text-slate-400">Line Angle</span>
+              <span id="lineAngleVal" class="text-cyan-400 font-mono">0°</span>
+            </div>
+            <input type="range" id="lineAngleSlider" min="-90" max="90" step="5" value="0" class="w-full">
+            <p class="text-[10px] text-slate-500">Rotates the drawing axis of the lines dynamically.</p>
+          </div>
+
+          <!-- Max Line Width -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-medium">
+              <span class="text-slate-400">Max Line Width</span>
+              <span id="maxWidthVal" class="text-cyan-400 font-mono">8.0px</span>
+            </div>
+            <input type="range" id="maxWidthSlider" min="2.0" max="25.0" step="0.5" value="8.0" class="w-full">
+            <p class="text-[10px] text-slate-500">Maximum ribbon thickness mapping to absolute darks.</p>
+          </div>
+
+          <!-- Min Line Width -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-medium">
+              <span class="text-slate-400">Min Line Width</span>
+              <span id="minWidthVal" class="text-cyan-400 font-mono">0.5px</span>
+            </div>
+            <input type="range" id="minWidthSlider" min="0.0" max="5.0" step="0.1" value="0.5" class="w-full">
+            <p class="text-[10px] text-slate-500">Minimum line width mapping to absolute lights.</p>
+          </div>
+
+          <!-- Y-Axis Smoothing -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-medium">
+              <span class="text-slate-400">Y-Axis Smoothing</span>
+              <span id="smoothingVal" class="text-cyan-400 font-mono">5px</span>
+            </div>
+            <input type="range" id="smoothingSlider" min="0" max="30" step="1" value="5" class="w-full">
+            <p class="text-[10px] text-slate-500">Reduces vertical noise. High values yield smooth flowing ribbons.</p>
+          </div>
+
+          <!-- Contrast Boost -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-medium">
+              <span class="text-slate-400">Contrast Boost</span>
+              <span id="contrastVal" class="text-cyan-400 font-mono">1.00x</span>
+            </div>
+            <input type="range" id="contrastSlider" min="0.5" max="3.0" step="0.1" value="1.0" class="w-full">
+            <p class="text-[10px] text-slate-500">Amplifies the difference between highlights and shadows.</p>
+          </div>
+
+          <!-- Brightness -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-medium">
+              <span class="text-slate-400">Brightness Shift</span>
+              <span id="brightnessVal" class="text-cyan-400 font-mono">0</span>
+            </div>
+            <input type="range" id="brightnessSlider" min="-100" max="100" step="5" value="0" class="w-full">
+            <p class="text-[10px] text-slate-500">Modulates the global light levels before thickness mapping.</p>
+          </div>
         </div>
 
-        <!-- Line Angle -->
-        <div class="space-y-1.5">
-          <div class="flex justify-between text-xs font-medium">
-            <span class="text-slate-400">Line Angle</span>
-            <span id="lineAngleVal" class="text-cyan-400 font-mono">0°</span>
-          </div>
-          <input type="range" id="lineAngleSlider" min="-90" max="90" step="5" value="0" class="w-full">
-          <p class="text-[10px] text-slate-500">Rotates the drawing axis of the lines dynamically.</p>
+        <!-- Dot Halftone Placeholder Panel -->
+        <div id="panel-controls-dot-halftone" class="hidden text-center py-8 px-4 text-slate-500 space-y-3">
+          <span class="text-4xl block">⚫</span>
+          <div class="text-xs font-semibold text-slate-400">Dot Halftone Studio controls will appear here.</div>
+          <div class="text-[10px] text-slate-600">This module is currently under active development. Select 'Line Modulation' to generate art.</div>
         </div>
 
-        <!-- Max Line Width -->
-        <div class="space-y-1.5">
-          <div class="flex justify-between text-xs font-medium">
-            <span class="text-slate-400">Max Line Width</span>
-            <span id="maxWidthVal" class="text-cyan-400 font-mono">8.0px</span>
-          </div>
-          <input type="range" id="maxWidthSlider" min="2.0" max="25.0" step="0.5" value="8.0" class="w-full">
-          <p class="text-[10px] text-slate-500">Maximum ribbon thickness mapping to absolute darks.</p>
-        </div>
-
-        <!-- Min Line Width -->
-        <div class="space-y-1.5">
-          <div class="flex justify-between text-xs font-medium">
-            <span class="text-slate-400">Min Line Width</span>
-            <span id="minWidthVal" class="text-cyan-400 font-mono">0.5px</span>
-          </div>
-          <input type="range" id="minWidthSlider" min="0.0" max="5.0" step="0.1" value="0.5" class="w-full">
-          <p class="text-[10px] text-slate-500">Minimum line width mapping to absolute lights.</p>
-        </div>
-
-        <!-- Y-Axis Smoothing -->
-        <div class="space-y-1.5">
-          <div class="flex justify-between text-xs font-medium">
-            <span class="text-slate-400">Y-Axis Smoothing</span>
-            <span id="smoothingVal" class="text-cyan-400 font-mono">5px</span>
-          </div>
-          <input type="range" id="smoothingSlider" min="0" max="30" step="1" value="5" class="w-full">
-          <p class="text-[10px] text-slate-500">Reduces vertical noise. High values yield smooth flowing ribbons.</p>
-        </div>
-
-        <!-- Contrast Boost -->
-        <div class="space-y-1.5">
-          <div class="flex justify-between text-xs font-medium">
-            <span class="text-slate-400">Contrast Boost</span>
-            <span id="contrastVal" class="text-cyan-400 font-mono">1.00x</span>
-          </div>
-          <input type="range" id="contrastSlider" min="0.5" max="3.0" step="0.1" value="1.0" class="w-full">
-          <p class="text-[10px] text-slate-500">Amplifies the difference between highlights and shadows.</p>
-        </div>
-
-        <!-- Brightness -->
-        <div class="space-y-1.5">
-          <div class="flex justify-between text-xs font-medium">
-            <span class="text-slate-400">Brightness Shift</span>
-            <span id="brightnessVal" class="text-cyan-400 font-mono">0</span>
-          </div>
-          <input type="range" id="brightnessSlider" min="-100" max="100" step="5" value="0" class="w-full">
-          <p class="text-[10px] text-slate-500">Modulates the global light levels before thickness mapping.</p>
+        <!-- Delaunay Mesh Placeholder Panel -->
+        <div id="panel-controls-geometric-triangles" class="hidden text-center py-8 px-4 text-slate-500 space-y-3">
+          <span class="text-4xl block">🔺</span>
+          <div class="text-xs font-semibold text-slate-400">Delaunay Mesh Studio controls will appear here.</div>
+          <div class="text-[10px] text-slate-600">This module is currently under active development. Select 'Line Modulation' to generate art.</div>
         </div>
       </div>
 

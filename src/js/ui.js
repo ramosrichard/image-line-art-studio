@@ -3,6 +3,11 @@ import { presets } from './presets.js';
 import { downloadPNG, downloadSVG } from './exporter.js';
 
 export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePattern, updateCanvasResolution) {
+  // DOM Module Selection
+  const moduleDropdownBtn = document.getElementById('moduleDropdownBtn');
+  const moduleDropdownPanel = document.getElementById('moduleDropdownPanel');
+  const activeModuleIcon = document.getElementById('activeModuleIcon');
+
   // DOM Sliders & Badges
   const zoomSlider = document.getElementById('zoomSlider');
   const zoomVal = document.getElementById('zoomVal');
@@ -311,6 +316,67 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
   window.changeAspectRatio = () => {
     state.aspectRatio = document.getElementById('aspectRatioSelect').value;
     updateCanvasResolution();
+  };
+
+  // Toggle module dropdown visibility
+  moduleDropdownBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    moduleDropdownPanel.classList.toggle('hidden');
+  });
+
+  // Close dropdown on click outside
+  window.addEventListener('click', (e) => {
+    if (!moduleDropdownPanel.classList.contains('hidden') && !e.target.closest('#moduleDropdownContainer')) {
+      moduleDropdownPanel.classList.add('hidden');
+    }
+  });
+
+  // Module switcher callback
+  window.selectModule = (moduleName) => {
+    state.activeModule = moduleName;
+    moduleDropdownPanel.classList.add('hidden');
+
+    // Update active icon
+    const icons = {
+      'line-modulation': '🌊',
+      'dot-halftone': '⚫',
+      'geometric-triangles': '🔺'
+    };
+    activeModuleIcon.innerText = icons[moduleName] || '🌊';
+
+    // Show/hide respective controls panel
+    const panels = ['line-modulation', 'dot-halftone', 'geometric-triangles'];
+    panels.forEach((p) => {
+      const panelEl = document.getElementById(`panel-controls-${p}`);
+      const btnEl = document.getElementById(`btn-opt-${p}`);
+      const checkEl = document.getElementById(`check-${p}`);
+
+      if (panelEl) {
+        if (p === moduleName) {
+          panelEl.classList.remove('hidden');
+        } else {
+          panelEl.classList.add('hidden');
+        }
+      }
+
+      if (btnEl) {
+        if (p === moduleName) {
+          btnEl.classList.add('bg-slate-800/80', 'border-slate-700');
+        } else {
+          btnEl.classList.remove('bg-slate-800/80', 'border-slate-700');
+        }
+      }
+
+      if (checkEl) {
+        if (p === moduleName) {
+          checkEl.classList.remove('hidden');
+        } else {
+          checkEl.classList.add('hidden');
+        }
+      }
+    });
+
+    triggerRedraw();
   };
 
   return {

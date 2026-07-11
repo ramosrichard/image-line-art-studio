@@ -1,4 +1,5 @@
 export const state = {
+  activeModule: 'line-modulation', // Active generator module
   image: null,            // Active image element or Canvas object
   imageName: 'Sample Pattern',
   

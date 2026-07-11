@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-07-11
+
+### Added
+- **Multi-Module Dropdown Selector:** Created a collapsible, icon-only dropdown button at the top of the Left Sidebar. The closed state shows only the active icon; the expanded state displays titles, icons, and descriptions for all modules.
+- **Modular UI Panel Architecture:** Restructured the Left Sidebar to group controls in module-specific divs (`panel-controls-line-modulation`, `panel-controls-dot-halftone`, etc.), auto-showing/hiding panels based on the active selection.
+- **Artistic Routing Engine:** Configured the application draw cycle to render based on the active module, including theme-compliant placeholder canvases for upcoming modules.
+- **Active Module Tracking:** Added `activeModule` to the global application state model.
+
 ## [1.2.0] - 2026-07-08
 
 ### Added
