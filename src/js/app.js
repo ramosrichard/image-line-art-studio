@@ -126,6 +126,10 @@ function loadSamplePattern(type) {
     uiInterface.updateSourceThumbnail(true);
   }
   
+  if (window.updatePaletteAndUI) {
+    window.updatePaletteAndUI();
+  }
+  
   triggerRedraw();
 }
 

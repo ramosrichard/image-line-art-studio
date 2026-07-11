@@ -359,9 +359,65 @@
         </div>
       </div>
 
+      <!-- Adaptive Color Palette Panel -->
+      <div class="p-5 border-b border-slate-800 space-y-4">
+        <h2 class="text-xs font-bold tracking-wider text-slate-400 uppercase">4. Color Mode & Palette Settings</h2>
+
+        <!-- Color Mode Dropdown -->
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Coloring Mode</label>
+          <select id="colorModeSelect" class="w-full py-1.5 px-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-cyan-500">
+            <option value="monochrome">Monochrome Mode (Preset/Uniform)</option>
+            <option value="adaptive-luminance">Adaptive (Luminance Mapping)</option>
+            <option value="adaptive-local">Adaptive (Local Color Sample)</option>
+          </select>
+          <p class="text-[10px] text-slate-500">Choose how colors are mapped to vectors/shapes.</p>
+        </div>
+
+        <!-- Adaptive Color Settings Panel -->
+        <div id="panel-adaptive-colors" class="hidden space-y-4 pt-1">
+          <!-- Palette Size (Slider) -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs font-medium">
+              <span class="text-slate-400">Palette Size (K-Colors)</span>
+              <span id="paletteSizeVal" class="text-cyan-400 font-mono">4</span>
+            </div>
+            <input type="range" id="paletteSizeSlider" min="2" max="8" step="1" value="4" class="w-full">
+            <p class="text-[10px] text-slate-500">Number of dominant colors extracted from the image.</p>
+          </div>
+
+          <!-- Dynamic Swatches Row -->
+          <div class="space-y-2">
+            <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Extracted Swatches (Click to Pick / Lock)</label>
+            <div id="paletteSwatchesContainer" class="flex flex-wrap gap-2.5 p-2 bg-slate-950/40 border border-slate-800 rounded-lg min-h-[56px] items-center justify-start">
+              <!-- Rendered programmatically -->
+            </div>
+          </div>
+
+          <!-- Background Source Selection -->
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Canvas Backdrop Source</label>
+            <select id="colorBgSourceSelect" class="w-full py-1.5 px-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-cyan-500">
+              <option value="lightest">Adaptive (Lightest Color)</option>
+              <option value="darkest">Adaptive (Darkest Color)</option>
+              <option value="custom">Custom Color Override</option>
+            </select>
+          </div>
+
+          <!-- Custom Bg Override Picker -->
+          <div id="customBgColorContainer" class="hidden flex items-center justify-between p-2 bg-slate-950/40 border border-slate-800 rounded-lg">
+            <span class="text-xs text-slate-300">Custom Background Color</span>
+            <div class="flex items-center gap-2">
+              <input type="text" id="colorBgCustomText" class="w-20 px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-[11px] text-slate-300 font-mono text-center" value="#1e293b">
+              <input type="color" id="colorBgCustomPicker" class="w-8 h-8 rounded border border-slate-700 bg-transparent cursor-pointer" value="#1e293b">
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Aesthetics & Palette Panel -->
       <div class="p-5 border-b border-slate-800 space-y-4">
-        <h2 class="text-xs font-bold tracking-wider text-slate-400 uppercase">4. Color & Preset Palette</h2>
+        <h2 class="text-xs font-bold tracking-wider text-slate-400 uppercase">5. Color Presets & Themes</h2>
         
         <!-- Palette Presets Grid -->
         <div class="grid grid-cols-4 gap-2" id="paletteGrid">

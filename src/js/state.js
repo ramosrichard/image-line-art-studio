@@ -30,5 +30,13 @@ export const state = {
   // Aesthetics & Output config
   transparentBg: false,
   colorPreset: 'monochrome-light',
-  highResExport: true
+  highResExport: true,
+
+  // Adaptive Color Palette parameters
+  colorMode: 'monochrome',      // 'monochrome', 'adaptive-luminance', 'adaptive-local'
+  paletteSize: 4,              // Number of colors to extract (2 to 8)
+  extractedPalette: [],        // Array of { r, g, b, hex }
+  lockedPaletteSlots: Array(8).fill(false),  // Locked slots mask
+  colorBgSource: 'lightest',   // 'lightest', 'darkest', 'custom'
+  colorBgCustom: '#1e293b'     // Custom bg color override
 };

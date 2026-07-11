@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-07-11
+
+### Added
+- **Adaptive Color Palette & Quantization Engine:**
+  - Developed a standalone color extraction module (`src/js/colorEngine.js`) utilizing the **Median Cut algorithm** on downsampled image arrays ($<2\text{ms}$ execution) to extract $K$ dominant colors.
+  - Implemented **Luminance Mapping** to bind extracted swatch colors to corresponding pixel brightness ranges.
+  - Implemented **Local Color Sampling** to match coordinates with original image pixels and perform a Euclidean RGB distance search to draw shapes with their closest palette matches.
+- **Color Configuration Panel UI:**
+  - Added a collapsible selector in the sidebar toolbar containing coloring mode dropdowns, a palette size density slider ($K \in [2, 8]$), interactive swatch buttons, color pickers, and canvas background source toggles (lightest, darkest, or custom).
+  - Wired swatch padlocks to prevent overwriting colors during new uploads.
+- **Multi-color Exporter Support:** Updated PNG/SVG downloaders to render multi-color canvas segments and write vector nodes (`fill="${color}"` per `<path>`, `<circle>`, `<polygon>`) preserving custom palettes.
+
 ## [1.4.0] - 2026-07-11
 
 ### Added

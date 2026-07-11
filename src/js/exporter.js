@@ -2,6 +2,7 @@ import { state } from './state.js';
 import { presets } from './presets.js';
 import { renderLineModulation } from './engine.js';
 import { renderHalftoneMatrix } from './halftone.js';
+import { getLuminanceColor, getClosestPaletteColor } from './colorEngine.js';
 export function generateSVGString(sourceCanvas, renderCanvas) {
   const W = 800;
   const H = 800;
@@ -75,6 +76,8 @@ export function generateSVGString(sourceCanvas, renderCanvas) {
       const rawWidths = new Float32Array(numSamples);
       const smoothWidths = new Float32Array(numSamples);
       
+      let sumLuminance = 0;
+
       // Sample
       for (let s = 0; s < numSamples; s++) {
         const v = vStart + s * dy;
@@ -94,6 +97,8 @@ export function generateSVGString(sourceCanvas, renderCanvas) {
         luminance = 128 + (luminance - 128) * state.contrast;
         luminance = Math.max(0, Math.min(255, luminance));
         
+        sumLuminance += luminance / 255.0;
+
         const darkness = 1.0 - (luminance / 255.0);
         rawWidths[s] = minW + darkness * (maxW - minW);
       }
@@ -153,7 +158,26 @@ export function generateSVGString(sourceCanvas, renderCanvas) {
       }
       pathD += ' Z';
       
-      svgPaths += `  <path d="${pathD}" />\n`;
+      if (state.colorMode === 'adaptive-luminance') {
+        const avgLum = sumLuminance / numSamples;
+        const color = getLuminanceColor(avgLum, state.extractedPalette, state.colorBgSource);
+        svgPaths += `  <path d="${pathD}" fill="${color}" />\n`;
+      } else if (state.colorMode === 'adaptive-local') {
+        const midS = Math.floor(numSamples / 2);
+        const vMid = vStart + midS * dy;
+        const cX = U_c * cosA + vMid * sinA;
+        const cY = -U_c * sinA + vMid * cosA;
+        const srcX = Math.min(srcW - 1, Math.max(0, Math.floor(cX * (srcW / W))));
+        const srcY = Math.min(srcH - 1, Math.max(0, Math.floor(cY * (srcH / H))));
+        const idx = (srcY * srcW + srcX) * 4;
+        const r = srcData[idx];
+        const g = srcData[idx+1];
+        const b = srcData[idx+2];
+        const color = getClosestPaletteColor(r, g, b, state.extractedPalette);
+        svgPaths += `  <path d="${pathD}" fill="${color}" />\n`;
+      } else {
+        svgPaths += `  <path d="${pathD}" />\n`;
+      }
     }
   } else if (state.activeModule === 'dot-halftone') {
     const cellSize = state.halftoneCellSize;
@@ -200,8 +224,16 @@ export function generateSVGString(sourceCanvas, renderCanvas) {
         const size = cellSize * d * maxScale;
         if (size <= 0) continue;
 
+        let nodeColor = '';
+        if (state.colorMode === 'adaptive-luminance') {
+          nodeColor = getLuminanceColor(luminance / 255.0, state.extractedPalette, state.colorBgSource);
+        } else if (state.colorMode === 'adaptive-local') {
+          nodeColor = getClosestPaletteColor(r, g, b, state.extractedPalette);
+        }
+        const fillAttr = nodeColor ? ` fill="${nodeColor}"` : '';
+
         if (shape === 'Circle') {
-          svgPaths += `  <circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${(size / 2).toFixed(2)}" />\n`;
+          svgPaths += `  <circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${(size / 2).toFixed(2)}"${fillAttr} />\n`;
         } else if (shape === 'Square') {
           const vrx = (size / 2) * cosT;
           const vry = (size / 2) * sinT;
@@ -213,7 +245,7 @@ export function generateSVGString(sourceCanvas, renderCanvas) {
           const p3 = `${(x + vrx + vux).toFixed(2)},${(y + vry + vuy).toFixed(2)}`;
           const p4 = `${(x - vrx + vux).toFixed(2)},${(y - vry + vuy).toFixed(2)}`;
 
-          svgPaths += `  <polygon points="${p1} ${p2} ${p3} ${p4}" />\n`;
+          svgPaths += `  <polygon points="${p1} ${p2} ${p3} ${p4}"${fillAttr} />\n`;
         } else if (shape === 'Diamond') {
           const vrx = (size / 2) * cosT;
           const vry = (size / 2) * sinT;
@@ -225,7 +257,7 @@ export function generateSVGString(sourceCanvas, renderCanvas) {
           const p3 = `${(x + vux).toFixed(2)},${(y + vuy).toFixed(2)}`;
           const p4 = `${(x - vrx).toFixed(2)},${(y - vry).toFixed(2)}`;
 
-          svgPaths += `  <polygon points="${p1} ${p2} ${p3} ${p4}" />\n`;
+          svgPaths += `  <polygon points="${p1} ${p2} ${p3} ${p4}"${fillAttr} />\n`;
         }
       }
     }
@@ -238,26 +270,45 @@ export function generateSVGString(sourceCanvas, renderCanvas) {
   
   // Background Rect
   if (!state.transparentBg) {
-    if (preset.bgGradient) {
-      defs += `    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="${preset.bgGradient[0]}" />
-      <stop offset="100%" stop-color="${preset.bgGradient[1]}" />
-    </linearGradient>\n`;
-      bgElement = `  <rect width="${W}" height="${H}" fill="url(#bgGrad)" />\n`;
+    if (state.colorMode === 'monochrome') {
+      if (preset.bgGradient) {
+        defs += `    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="${preset.bgGradient[0]}" />
+        <stop offset="100%" stop-color="${preset.bgGradient[1]}" />
+      </linearGradient>\n`;
+        bgElement = `  <rect width="${W}" height="${H}" fill="url(#bgGrad)" />\n`;
+      } else {
+        bgElement = `  <rect width="${W}" height="${H}" fill="${preset.bgColor}" />\n`;
+      }
     } else {
-      bgElement = `  <rect width="${W}" height="${H}" fill="${preset.bgColor}" />\n`;
+      const K = state.extractedPalette.length;
+      let bgColor = '#1e293b';
+      if (K > 0) {
+        if (state.colorBgSource === 'lightest') {
+          bgColor = state.extractedPalette[K - 1].hex;
+        } else if (state.colorBgSource === 'darkest') {
+          bgColor = state.extractedPalette[0].hex;
+        } else {
+          bgColor = state.colorBgCustom;
+        }
+      }
+      bgElement = `  <rect width="${W}" height="${H}" fill="${bgColor}" />\n`;
     }
   }
   
   // Line Gradient Fill styling
-  if (preset.lineGradient) {
-    defs += `    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="${preset.lineGradient[0]}" />
-      <stop offset="100%" stop-color="${preset.lineGradient[1]}" />
-    </linearGradient>\n`;
-    groupElement = `  <g fill="url(#lineGrad)">\n`;
+  if (state.colorMode === 'monochrome') {
+    if (preset.lineGradient) {
+      defs += `    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="${preset.lineGradient[0]}" />
+        <stop offset="100%" stop-color="${preset.lineGradient[1]}" />
+      </linearGradient>\n`;
+      groupElement = `  <g fill="url(#lineGrad)">\n`;
+    } else {
+      groupElement = `  <g fill="${preset.lineColor}">\n`;
+    }
   } else {
-    groupElement = `  <g fill="${preset.lineColor}">\n`;
+    groupElement = `  <g>\n`;
   }
   
   const wrappedDefs = defs ? `<defs>\n${defs}  </defs>\n` : '';

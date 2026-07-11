@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { presets } from './presets.js';
 import { downloadPNG, downloadSVG } from './exporter.js';
+import { syncPaletteWithImage, hexToRgb } from './colorEngine.js';
 
 export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePattern, updateCanvasResolution) {
   // DOM Module Selection Rail
@@ -37,6 +38,17 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
   const halftoneMinThresholdSlider = document.getElementById('halftoneMinThresholdSlider');
   const halftoneMinThresholdVal = document.getElementById('halftoneMinThresholdVal');
   const halftoneInvertToggle = document.getElementById('halftoneInvertToggle');
+
+  // DOM Color Quantization Elements
+  const colorModeSelect = document.getElementById('colorModeSelect');
+  const panelAdaptiveColors = document.getElementById('panel-adaptive-colors');
+  const paletteSizeSlider = document.getElementById('paletteSizeSlider');
+  const paletteSizeVal = document.getElementById('paletteSizeVal');
+  const paletteSwatchesContainer = document.getElementById('paletteSwatchesContainer');
+  const colorBgSourceSelect = document.getElementById('colorBgSourceSelect');
+  const customBgColorContainer = document.getElementById('customBgColorContainer');
+  const colorBgCustomText = document.getElementById('colorBgCustomText');
+  const colorBgCustomPicker = document.getElementById('colorBgCustomPicker');
   
   const fileInput = document.getElementById('fileInput');
   const dropZone = document.getElementById('dropZone');
@@ -76,6 +88,77 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
   });
   compareBtn.addEventListener('touchend', hideOverlay);
 
+  // Helper to extract colors from current active image or pattern canvas
+  const updatePaletteFromActiveSource = () => {
+    if (state.image) {
+      syncPaletteWithImage(state.image);
+    } else {
+      syncPaletteWithImage(sourceCanvas);
+    }
+  };
+
+  // Swatches preview renderer
+  const renderPaletteSwatches = () => {
+    paletteSwatchesContainer.innerHTML = '';
+    const palette = state.extractedPalette;
+    
+    palette.forEach((color, idx) => {
+      const isLocked = state.lockedPaletteSlots[idx];
+      
+      const swatchWrapper = document.createElement('div');
+      swatchWrapper.className = 'flex flex-col items-center gap-1 relative group/swatch';
+      
+      // Swatch color box
+      const swatchBox = document.createElement('div');
+      swatchBox.className = 'w-10 h-10 rounded-lg shadow-md border border-slate-700 hover:border-slate-500 cursor-pointer relative transition duration-150';
+      swatchBox.style.backgroundColor = color.hex;
+      
+      // Color picker input overlay
+      const colorPicker = document.createElement('input');
+      colorPicker.type = 'color';
+      colorPicker.value = color.hex;
+      colorPicker.className = 'absolute inset-0 opacity-0 cursor-pointer w-full h-full';
+      colorPicker.addEventListener('input', (e) => {
+        const hex = e.target.value;
+        const rgb = hexToRgb(hex);
+        if (rgb) {
+          state.extractedPalette[idx] = { ...rgb, hex };
+          swatchBox.style.backgroundColor = hex;
+          triggerRedraw();
+        }
+      });
+      swatchBox.appendChild(colorPicker);
+      swatchWrapper.appendChild(swatchBox);
+      
+      // Padlock button
+      const lockBtn = document.createElement('button');
+      lockBtn.className = `absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center border text-[9px] shadow-sm transition duration-150 focus:outline-none cursor-pointer ${
+        isLocked 
+          ? 'bg-amber-500/20 border-amber-500/40 text-amber-400' 
+          : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300'
+      }`;
+      lockBtn.title = isLocked ? 'Unlock Color' : 'Lock Color';
+      lockBtn.innerHTML = isLocked
+        ? `<svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>`
+        : `<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>`;
+      
+      lockBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.lockedPaletteSlots[idx] = !state.lockedPaletteSlots[idx];
+        renderPaletteSwatches();
+      });
+      swatchWrapper.appendChild(lockBtn);
+      
+      paletteSwatchesContainer.appendChild(swatchWrapper);
+    });
+  };
+
+  // Expose these helpers on window so that app.js or generators can call them on image upload
+  window.updatePaletteAndUI = () => {
+    updatePaletteFromActiveSource();
+    renderPaletteSwatches();
+  };
+
   // Sliders Input Bindings
   const sliders = [
     { el: zoomSlider, valEl: zoomVal, key: 'zoom', suffix: 'x', decimals: 2 },
@@ -91,7 +174,20 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
     { el: halftoneCellSizeSlider, valEl: halftoneCellSizeVal, key: 'halftoneCellSize', suffix: 'px', decimals: 0 },
     { el: halftoneAngleSlider, valEl: halftoneAngleVal, key: 'halftoneAngle', suffix: '°', decimals: 0 },
     { el: halftoneMaxScaleSlider, valEl: halftoneMaxScaleVal, key: 'halftoneMaxScale', format: (v) => Math.round(v * 100) + '%' },
-    { el: halftoneMinThresholdSlider, valEl: halftoneMinThresholdVal, key: 'halftoneMinThreshold', format: (v) => Math.round(v * 100) + '%' }
+    { el: halftoneMinThresholdSlider, valEl: halftoneMinThresholdVal, key: 'halftoneMinThreshold', format: (v) => Math.round(v * 100) + '%' },
+
+    // Adaptive Color Slider Bindings
+    { 
+      el: paletteSizeSlider, 
+      valEl: paletteSizeVal, 
+      key: 'paletteSize', 
+      suffix: '', 
+      decimals: 0, 
+      onChange: () => {
+        updatePaletteFromActiveSource();
+        renderPaletteSwatches();
+      }
+    }
   ];
 
   sliders.forEach((sliderDef) => {
@@ -116,6 +212,47 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
   halftoneInvertToggle.addEventListener('change', (e) => {
     state.halftoneInvert = e.target.checked;
     triggerRedraw();
+  });
+
+  // Color Mode dropdown change
+  colorModeSelect.addEventListener('change', (e) => {
+    state.colorMode = e.target.value;
+    if (state.colorMode === 'monochrome') {
+      panelAdaptiveColors.classList.add('hidden');
+    } else {
+      panelAdaptiveColors.classList.remove('hidden');
+      updatePaletteFromActiveSource();
+      renderPaletteSwatches();
+    }
+    triggerRedraw();
+  });
+
+  // Background Source dropdown change
+  colorBgSourceSelect.addEventListener('change', (e) => {
+    state.colorBgSource = e.target.value;
+    if (state.colorBgSource === 'custom') {
+      customBgColorContainer.classList.remove('hidden');
+    } else {
+      customBgColorContainer.classList.add('hidden');
+    }
+    triggerRedraw();
+  });
+
+  // Custom Bg color picker change
+  colorBgCustomPicker.addEventListener('input', (e) => {
+    state.colorBgCustom = e.target.value;
+    colorBgCustomText.value = e.target.value.toUpperCase();
+    triggerRedraw();
+  });
+
+  // Custom Bg text input change
+  colorBgCustomText.addEventListener('change', (e) => {
+    const hex = e.target.value;
+    if (/^#[0-9A-F]{6}$/i.test(hex)) {
+      state.colorBgCustom = hex;
+      colorBgCustomPicker.value = hex;
+      triggerRedraw();
+    }
   });
 
   // Canvas Drag/Pan coordinates tracking
@@ -223,6 +360,8 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
         zoomSlider.value = 1.0;
         zoomVal.innerText = '1.00x';
         
+        updatePaletteFromActiveSource();
+        renderPaletteSwatches();
         updateSourceThumbnail(false);
         if (state.aspectRatio === 'original') {
           updateCanvasResolution();

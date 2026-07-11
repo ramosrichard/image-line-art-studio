@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { presets } from './presets.js';
+import { renderCanvasBackground, getLuminanceColor, getClosestPaletteColor } from './colorEngine.js';
 
 export function drawSourceImage(sourceCanvas) {
   if (!sourceCanvas) return;
@@ -43,26 +44,18 @@ export function renderLineModulation(srcCanvas, dstCanvas, isExport = false, upd
   const preset = presets[state.colorPreset];
   
   // Render Background
-  if (!state.transparentBg) {
-    if (preset.bgGradient) {
-      const bgGrad = dstCtx.createLinearGradient(0, 0, 0, h);
-      bgGrad.addColorStop(0, preset.bgGradient[0]);
-      bgGrad.addColorStop(1, preset.bgGradient[1]);
-      dstCtx.fillStyle = bgGrad;
-    } else {
-      dstCtx.fillStyle = preset.bgColor;
-    }
-    dstCtx.fillRect(0, 0, w, h);
-  }
+  renderCanvasBackground(dstCtx, w, h, preset);
   
-  // Setup Line Coloring
-  if (preset.lineGradient) {
-    const lineGrad = dstCtx.createLinearGradient(0, 0, w, 0);
-    lineGrad.addColorStop(0, preset.lineGradient[0]);
-    lineGrad.addColorStop(1, preset.lineGradient[1]);
-    dstCtx.fillStyle = lineGrad;
-  } else {
-    dstCtx.fillStyle = preset.lineColor;
+  // Setup Line Coloring (Only for monochrome mode)
+  if (state.colorMode === 'monochrome') {
+    if (preset.lineGradient) {
+      const lineGrad = dstCtx.createLinearGradient(0, 0, w, 0);
+      lineGrad.addColorStop(0, preset.lineGradient[0]);
+      lineGrad.addColorStop(1, preset.lineGradient[1]);
+      dstCtx.fillStyle = lineGrad;
+    } else {
+      dstCtx.fillStyle = preset.lineColor || '#ffffff';
+    }
   }
   
   // Get image data
@@ -148,6 +141,8 @@ export function renderLineModulation(srcCanvas, dstCanvas, isExport = false, upd
     const rawWidths = new Float32Array(numSamples);
     const smoothWidths = new Float32Array(numSamples);
     
+    let sumLuminance = 0;
+
     // Step 1: Sample
     for (let s = 0; s < numSamples; s++) {
       const v = vStart + s * dv;
@@ -167,6 +162,8 @@ export function renderLineModulation(srcCanvas, dstCanvas, isExport = false, upd
       luminance += state.brightness;
       luminance = 128 + (luminance - 128) * state.contrast;
       luminance = Math.max(0, Math.min(255, luminance));
+      
+      sumLuminance += luminance / 255.0;
       
       const darkness = 1.0 - (luminance / 255.0);
       rawWidths[s] = minW + darkness * (maxW - minW);
@@ -223,6 +220,26 @@ export function renderLineModulation(srcCanvas, dstCanvas, isExport = false, upd
     }
     
     dstCtx.closePath();
+
+    if (state.colorMode === 'adaptive-luminance') {
+      const avgLum = sumLuminance / numSamples;
+      dstCtx.fillStyle = getLuminanceColor(avgLum, state.extractedPalette, state.colorBgSource);
+    } else if (state.colorMode === 'adaptive-local') {
+      const midS = Math.floor(numSamples / 2);
+      const vMid = vStart + midS * dv;
+      const cX = U_c * cosA + vMid * sinA;
+      const cY = -U_c * sinA + vMid * cosA;
+      
+      const srcX = Math.min(srcW - 1, Math.max(0, Math.floor(cX * (srcW / w))));
+      const srcY = Math.min(srcH - 1, Math.max(0, Math.floor(cY * (srcH / h))));
+      
+      const idx = (srcY * srcW + srcX) * 4;
+      const r = srcData[idx];
+      const g = srcData[idx+1];
+      const b = srcData[idx+2];
+      dstCtx.fillStyle = getClosestPaletteColor(r, g, b, state.extractedPalette);
+    }
+
     dstCtx.fill();
   }
   

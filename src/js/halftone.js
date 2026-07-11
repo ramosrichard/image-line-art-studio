@@ -1,38 +1,30 @@
 import { state } from './state.js';
 import { presets } from './presets.js';
+import { renderCanvasBackground, getLuminanceColor, getClosestPaletteColor } from './colorEngine.js';
 
 export function renderHalftoneMatrix(sourceCanvas, renderCanvas, isExport = false, statsCallback = null) {
   const startTime = performance.now();
 
   const W = renderCanvas.width;
   const H = renderCanvas.height;
-
   const ctx = renderCanvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
 
   const preset = presets[state.colorPreset];
 
   // Draw Background
-  if (!state.transparentBg) {
-    if (preset.bgGradient) {
-      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-      bgGrad.addColorStop(0, preset.bgGradient[0]);
-      bgGrad.addColorStop(1, preset.bgGradient[1]);
-      ctx.fillStyle = bgGrad;
-    } else {
-      ctx.fillStyle = preset.bgColor;
-    }
-    ctx.fillRect(0, 0, W, H);
-  }
+  renderCanvasBackground(ctx, W, H, preset);
 
-  // Draw Foreground Halftone Nodes
-  if (preset.lineGradient) {
-    const fgGrad = ctx.createLinearGradient(0, 0, W, 0);
-    fgGrad.addColorStop(0, preset.lineGradient[0]);
-    fgGrad.addColorStop(1, preset.lineGradient[1]);
-    ctx.fillStyle = fgGrad;
-  } else {
-    ctx.fillStyle = preset.lineColor || '#ffffff';
+  // Setup Foreground Color (Only for monochrome mode)
+  if (state.colorMode === 'monochrome') {
+    if (preset.lineGradient) {
+      const fgGrad = ctx.createLinearGradient(0, 0, W, 0);
+      fgGrad.addColorStop(0, preset.lineGradient[0]);
+      fgGrad.addColorStop(1, preset.lineGradient[1]);
+      ctx.fillStyle = fgGrad;
+    } else {
+      ctx.fillStyle = preset.lineColor || '#ffffff';
+    }
   }
 
   // Get active source canvas dimensions
@@ -99,10 +91,25 @@ export function renderHalftoneMatrix(sourceCanvas, renderCanvas, isExport = fals
       const size = cellSize * d * maxScale;
       if (size <= 0) continue;
 
+      // Determine color
+      let nodeColor = '#ffffff';
+      if (state.colorMode === 'adaptive-luminance') {
+        nodeColor = getLuminanceColor(luminance / 255.0, state.extractedPalette, state.colorBgSource);
+      } else if (state.colorMode === 'adaptive-local') {
+        nodeColor = getClosestPaletteColor(r, g, b, state.extractedPalette);
+      }
+
       // Draw shape
       if (isCircle) {
-        ctx.moveTo(x + size / 2, y);
-        ctx.arc(x, y, size / 2, 0, 2 * Math.PI);
+        if (state.colorMode !== 'monochrome') {
+          ctx.beginPath();
+          ctx.arc(x, y, size / 2, 0, 2 * Math.PI);
+          ctx.fillStyle = nodeColor;
+          ctx.fill();
+        } else {
+          ctx.moveTo(x + size / 2, y);
+          ctx.arc(x, y, size / 2, 0, 2 * Math.PI);
+        }
       } else if (shape === 'Square') {
         const vrx = (size / 2) * cosT;
         const vry = (size / 2) * sinT;
@@ -115,6 +122,9 @@ export function renderHalftoneMatrix(sourceCanvas, renderCanvas, isExport = fals
         ctx.lineTo(x + vrx + vux, y + vry + vuy);
         ctx.lineTo(x - vrx + vux, y - vry + vuy);
         ctx.closePath();
+        if (state.colorMode !== 'monochrome') {
+          ctx.fillStyle = nodeColor;
+        }
         ctx.fill();
       } else if (shape === 'Diamond') {
         const vrx = (size / 2) * cosT;
@@ -128,12 +138,15 @@ export function renderHalftoneMatrix(sourceCanvas, renderCanvas, isExport = fals
         ctx.lineTo(x + vux, y + vuy);
         ctx.lineTo(x - vrx, y - vry);
         ctx.closePath();
+        if (state.colorMode !== 'monochrome') {
+          ctx.fillStyle = nodeColor;
+        }
         ctx.fill();
       }
     }
   }
 
-  if (isCircle) {
+  if (isCircle && state.colorMode === 'monochrome') {
     ctx.fill();
   }
 
