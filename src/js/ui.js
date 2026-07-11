@@ -3,10 +3,10 @@ import { presets } from './presets.js';
 import { downloadPNG, downloadSVG } from './exporter.js';
 
 export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePattern, updateCanvasResolution) {
-  // DOM Module Selection
-  const moduleDropdownBtn = document.getElementById('moduleDropdownBtn');
-  const moduleDropdownPanel = document.getElementById('moduleDropdownPanel');
-  const activeModuleIcon = document.getElementById('activeModuleIcon');
+  // DOM Module Selection Rail
+  const navRail = document.getElementById('navRail');
+  const railToggleBtn = document.getElementById('railToggleBtn');
+  const railToggleIcon = document.getElementById('railToggleIcon');
 
   // DOM Sliders & Badges
   const zoomSlider = document.getElementById('zoomSlider');
@@ -318,60 +318,54 @@ export function initUI(sourceCanvas, renderCanvas, triggerRedraw, loadSamplePatt
     updateCanvasResolution();
   };
 
-  // Toggle module dropdown visibility
-  moduleDropdownBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    moduleDropdownPanel.classList.toggle('hidden');
-  });
-
-  // Close dropdown on click outside
-  window.addEventListener('click', (e) => {
-    if (!moduleDropdownPanel.classList.contains('hidden') && !e.target.closest('#moduleDropdownContainer')) {
-      moduleDropdownPanel.classList.add('hidden');
+  // Toggle navigation rail collapse/expand state
+  let railExpanded = false;
+  railToggleBtn.addEventListener('click', () => {
+    railExpanded = !railExpanded;
+    if (railExpanded) {
+      navRail.classList.remove('w-16');
+      navRail.classList.add('w-56');
+      railToggleIcon.classList.add('rotate-180');
+      railToggleBtn.title = "Collapse Toolbar";
+      
+      // Show labels, hide tooltips
+      document.querySelectorAll('.rail-label').forEach(el => el.classList.remove('hidden'));
+      document.querySelectorAll('.rail-tooltip').forEach(el => el.classList.add('opacity-0', 'pointer-events-none'));
+    } else {
+      navRail.classList.remove('w-56');
+      navRail.classList.add('w-16');
+      railToggleIcon.classList.remove('rotate-180');
+      railToggleBtn.title = "Expand Toolbar";
+      
+      // Hide labels, enable tooltips
+      document.querySelectorAll('.rail-label').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.rail-tooltip').forEach(el => el.classList.remove('opacity-0', 'pointer-events-none'));
     }
   });
 
   // Module switcher callback
   window.selectModule = (moduleName) => {
     state.activeModule = moduleName;
-    moduleDropdownPanel.classList.add('hidden');
 
-    // Update active icon
-    const icons = {
-      'line-modulation': '🌊',
-      'dot-halftone': '⚫',
-      'geometric-triangles': '🔺'
-    };
-    activeModuleIcon.innerText = icons[moduleName] || '🌊';
-
-    // Show/hide respective controls panel
-    const panels = ['line-modulation', 'dot-halftone', 'geometric-triangles'];
-    panels.forEach((p) => {
-      const panelEl = document.getElementById(`panel-controls-${p}`);
-      const btnEl = document.getElementById(`btn-opt-${p}`);
-      const checkEl = document.getElementById(`check-${p}`);
+    // Update active highlight classes on rail buttons
+    const modules = ['line-modulation', 'dot-halftone', 'geometric-triangles'];
+    modules.forEach((m) => {
+      const btnEl = document.getElementById(`rail-btn-${m}`);
+      const panelEl = document.getElementById(`panel-controls-${m}`);
+      
+      if (btnEl) {
+        if (m === moduleName) {
+          btnEl.className = "w-full h-10 rounded-lg flex items-center justify-start px-2.5 gap-3 transition-all duration-200 border border-transparent cursor-pointer bg-cyan-500/10 border-cyan-500/20 text-cyan-400 group relative";
+        } else {
+          btnEl.className = "w-full h-10 rounded-lg flex items-center justify-start px-2.5 gap-3 transition-all duration-200 border border-transparent cursor-pointer text-slate-400 hover:text-slate-200 hover:bg-slate-900 group relative";
+        }
+      }
 
       if (panelEl) {
-        if (p === moduleName) {
+        if (m === moduleName) {
           panelEl.classList.remove('hidden');
         } else {
           panelEl.classList.add('hidden');
-        }
-      }
-
-      if (btnEl) {
-        if (p === moduleName) {
-          btnEl.classList.add('bg-slate-800/80', 'border-slate-700');
-        } else {
-          btnEl.classList.remove('bg-slate-800/80', 'border-slate-700');
-        }
-      }
-
-      if (checkEl) {
-        if (p === moduleName) {
-          checkEl.classList.remove('hidden');
-        } else {
-          checkEl.classList.add('hidden');
         }
       }
     });
