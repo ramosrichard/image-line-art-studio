@@ -20,6 +20,6 @@ export const state = {
 
   // Aesthetics & Output config
   transparentBg: false,
-  colorPreset: 'monochrome-dark',
+  colorPreset: 'monochrome-light',
   highResExport: true
 };
